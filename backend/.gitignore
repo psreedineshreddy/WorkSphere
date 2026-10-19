@@ -1,0 +1,19 @@
+# Virtual environment
+venv/
+.venv/
+
+# Environment secrets
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Database
+*.db
+*.sqlite3
+
+# Test and coverage files
+.pytest_cache/
+.coverage
+htmlcov/

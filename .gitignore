@@ -1,0 +1,23 @@
+# Secrets
+.env
+.env.*
+!.env.example
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Frontend dependencies and builds
+node_modules/
+dist/
+
+# System files
+.DS_Store
