@@ -1585,3 +1585,44 @@ button:focus-visible {
   background: #b91c1c;
   border-color: #b91c1c;
 }
+/* Attendance overview summary cards */
+.attendance-page .dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+@media (max-width: 900px) {
+  .attendance-page .dashboard-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .attendance-page .dashboard-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.notification-bell {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}

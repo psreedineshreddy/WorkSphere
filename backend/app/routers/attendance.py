@@ -1,5 +1,4 @@
-
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -50,7 +49,9 @@ def check_in(
     if not record:
         record = Attendance(employee_id=employee.id, date=today)
 
-    record.check_in = datetime.now(timezone.utc)
+    record.check_in = datetime.now(timezone.utc).astimezone(
+    timezone(timedelta(hours=5, minutes=30))
+)
     record.status = "PRESENT"
     db.add(record)
     db.commit()
@@ -212,3 +213,54 @@ def mark_absent(
     db.commit()
     db.refresh(record)
     return record
+@router.get("/overview")
+def attendance_overview(
+    attendance_date: date | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("HR", "ADMIN")),
+):
+    selected_date = attendance_date or datetime.now().date()
+
+    employees = (
+        db.query(Employee)
+        .filter(Employee.status == "ACTIVE")
+        .order_by(Employee.full_name)
+        .all()
+    )
+
+    results = []
+    for employee in employees:
+        record = (
+            db.query(Attendance)
+            .filter(
+                Attendance.employee_id == employee.id,
+                Attendance.date == selected_date,
+            )
+            .first()
+        )
+
+        working_hours = None
+        if record and record.check_in and record.check_out:
+            start = record.check_in
+            end = record.check_out
+
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=timezone.utc)
+            if end.tzinfo is None:
+                end = end.replace(tzinfo=timezone.utc)
+
+            working_hours = round((end - start).total_seconds() / 3600, 2)
+
+        results.append({
+            "employee_id": employee.id,
+            "full_name": employee.full_name,
+            "department": employee.department,
+            "designation": employee.designation,
+            "date": selected_date,
+            "check_in": record.check_in if record else None,
+            "check_out": record.check_out if record else None,
+            "working_hours": working_hours,
+            "status": record.status if record else "NOT_MARKED",
+        })
+
+    return results

@@ -1,11 +1,10 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { apiRequest, loginUser, logoutUser } from "./api";
 import "./App.css";
 
 const navigation = [
-  { name: "My Profile", icon: "👤" },
   { name: "Dashboard", icon: "📊" },
+  { name: "My Profile", icon: "👤" },
   { name: "Employees", icon: "👨🏻‍💻" },
   { name: "Attendance", icon: "🗓️" },
   { name: "Leave Management", icon: "▤" },
@@ -42,6 +41,7 @@ function App() {
   const [employeeForm, setEmployeeForm] = useState(emptyEmployee);
   const [savingEmployee, setSavingEmployee] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const loadWorkspace = useCallback(async () => {
     try {
@@ -91,6 +91,21 @@ function App() {
       setLoading(false);
     }
   }, [loadWorkspace]);
+  useEffect(() => {
+  const loadUnreadCount = async () => {
+    try {
+      const data = await apiRequest("/api/notifications/");
+      const notifications = Array.isArray(data) ? data : [];
+      setUnreadCount(
+        notifications.filter((item) => !item.is_read).length
+      );
+    } catch (err) {
+      console.error("Could not load unread notification count:", err);
+    }
+  };
+
+  loadUnreadCount();
+}, []);
 
   useEffect(() => {
     if (user && ["HR", "ADMIN"].includes(user.role) && activePage === "Employees") {
@@ -375,13 +390,20 @@ function App() {
                 day: "numeric",
               }).toUpperCase()}
             </span>
-            <button
-              className="top-icon"
-              aria-label="Notifications"
-              onClick={() => setActivePage("Notifications")}
-            >
-              🔔
-            </button>
+
+<button
+  className="top-icon notification-bell"
+  aria-label="Notifications"
+  onClick={() => setActivePage("Notifications")}
+>
+  🔔
+  {unreadCount > 0 && (
+    <span className="notification-badge">
+      {unreadCount > 99 ? "99+" : unreadCount}
+    </span>
+  )}
+</button>
+
             <div className="top-avatar">{displayName.slice(0, 2).toUpperCase()}</div>
           </div>
         </header>
@@ -573,7 +595,7 @@ function App() {
               <div className="employee-filters">
                 <input
                   aria-label="Search employees"
-                  placeholder="Search name, designation, department..."
+                  placeholder="Search name, department..."
                   value={employeeSearch}
                   onChange={(event) => setEmployeeSearch(event.target.value)}
                 />
@@ -736,7 +758,9 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {employees.map((employee) => (
+                        {[...employees]
+  .sort((a, b) => a.id - b.id)
+  .map((employee) => (
                           <tr key={employee.id}>
                             <td>
                               <div className="employee-name-cell">
@@ -805,6 +829,12 @@ function App() {
 
 function AttendancePage({ user }) {
   const [records, setRecords] = useState([]);
+  const [overviewRecords, setOverviewRecords] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toLocaleDateString("en-CA")
+  );
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const isHR = ["HR", "ADMIN"].includes(user?.role);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState("");
   const [attendanceError, setAttendanceError] = useState("");
@@ -830,6 +860,27 @@ function AttendancePage({ user }) {
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
+    const loadOverview = useCallback(async () => {
+    if (!isHR) return;
+
+    setOverviewLoading(true);
+    try {
+      const data = await apiRequest(
+        `/api/attendance/overview?attendance_date=${selectedDate}`
+      );
+      setOverviewRecords(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setAttendanceError(err.message || "Unable to load attendance overview.");
+    } finally {
+      setOverviewLoading(false);
+    }
+  }, [isHR, selectedDate]);
+    useEffect(() => {
+    if (isHR) {
+      loadOverview();
+    }
+  }, [isHR, loadOverview]);
 
   async function handleAttendanceAction(action) {
     setActionLoading(action);
@@ -909,9 +960,96 @@ function AttendancePage({ user }) {
   const checkedOut = Boolean(
     todayRecord && getValue(todayRecord, ["check_out", "check_out_time", "checkout_time"])
   );
-
+    const overviewSummary = {
+    present: overviewRecords.filter((r) => r.status === "PRESENT").length,
+    halfDay: overviewRecords.filter((r) => r.status === "HALF_DAY").length,
+    absent: overviewRecords.filter((r) => r.status === "ABSENT").length,
+    notMarked: overviewRecords.filter((r) => r.status === "NOT_MARKED").length,
+  };
   return (
     <div className="attendance-page">
+            {isHR && (
+        <div className="panel" style={{ padding: "24px", marginBottom: "22px" }}>
+          <div className="panel-heading">
+            <div>
+              <h2>Employee Attendance Overview</h2>
+              <p>Track attendance for all active employees</p>
+            </div>
+            <button
+              className="secondary-button"
+              onClick={loadOverview}
+              disabled={overviewLoading}
+            >
+              {overviewLoading ? "Loading..." : "↻ Refresh"}
+            </button>
+          </div>
+
+          <div style={{ margin: "18px 0" }}>
+            <label htmlFor="attendance-date">Attendance date</label>
+            <input
+              id="attendance-date"
+              type="date"
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+            />
+          </div>
+
+          <div className="dashboard-metrics">
+            <MetricCard icon="✅" tone="success" label="Present" value={overviewSummary.present} note="Full day" />
+            <MetricCard icon="🕒" tone="warning" label="Half day" value={overviewSummary.halfDay} note="Partial hours" />
+            <MetricCard icon="❌" tone="danger" label="Absent" value={overviewSummary.absent} note="Marked absent" />
+            <MetricCard icon="—" tone="neutral" label="Not marked" value={overviewSummary.notMarked} note="No record yet" />
+          </div>
+
+          {overviewLoading ? (
+            <div className="table-message">Loading employee attendance...</div>
+          ) : overviewRecords.length === 0 ? (
+            <div className="table-message">No active employees found.</div>
+          ) : (
+            <div className="table-scroll">
+              <table className="employee-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th>Date</th>
+                    <th>Check in</th>
+                    <th>Check out</th>
+                    <th>Working hours</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overviewRecords.map((record) => (
+                    <tr key={record.employee_id}>
+                      <td>
+                        <strong>{record.full_name}</strong>
+                        <div style={{ color: "#7b8499", fontSize: "12px" }}>
+                          {record.designation}
+                        </div>
+                      </td>
+                      <td>{record.department}</td>
+                      <td>{formatDate(record.date)}</td>
+                      <td>{formatTime(record.check_in)}</td>
+                      <td>{formatTime(record.check_out)}</td>
+                      <td>
+                        {record.working_hours == null
+                          ? "—"
+                          : `${Number(record.working_hours).toFixed(2)} hrs`}
+                      </td>
+                      <td>
+                        <span className={`status-pill ${String(record.status).toLowerCase()}`}>
+                          {String(record.status).replaceAll("_", " ")}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
       <div className="panel" style={{ padding: "24px", marginBottom: "22px" }}>
         <div className="panel-heading">
           <div>
