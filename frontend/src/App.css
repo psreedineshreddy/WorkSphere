@@ -1626,3 +1626,419 @@ button:focus-visible {
   justify-content: center;
   line-height: 1;
 }
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .payslip-document,
+  .payslip-document * {
+    visibility: visible !important;
+  }
+
+  .payslip-document {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    border: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .payslip-actions {
+    display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}
+.user-management-form {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-items: start;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 24px 0;
+  padding: 24px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.user-management-form > label {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.user-management-form > label input,
+.user-management-form > label select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-weight: 400;
+}
+
+.user-management-form > button {
+  justify-self: start;
+  align-self: end;
+  min-height: 42px;
+}
+
+@media (max-width: 640px) {
+  .user-management-form {
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: 16px;
+  }
+}
+/* Login and Register page enhancements */
+.auth-switch {
+  margin: 18px 0 0;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.auth-link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #4f46e5;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+.login-success {
+  padding: 10px 12px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 14px;
+}
+
+/* Professional role selector */
+.login-form select {
+  width: 100%;
+  height: 46px;
+  padding: 0 42px 0 14px;
+  margin: 0 0 16px;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-form select:hover {
+  border-color: #a5b4fc;
+}
+
+.login-form select:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.login-form select option {
+  padding: 10px;
+  background: #ffffff;
+  color: #1e293b;
+}
+.employee-dashboard {
+  margin-top: 24px;
+}
+
+.employee-welcome-panel {
+  padding: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffffff, #f0f7ff);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.dashboard-eyebrow {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.employee-welcome-panel h2 {
+  margin: 0 0 10px;
+  color: #172554;
+  font-size: 28px;
+}
+
+.employee-welcome-panel p {
+  margin-bottom: 24px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.employee-dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.employee-dashboard-actions button {
+  padding: 11px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.employee-dashboard-actions button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgba(37, 99, 235, 0.12);
+}
+
+@media (max-width: 600px) {
+  .employee-welcome-panel {
+    padding: 22px;
+  }
+
+  .employee-welcome-panel h2 {
+    font-size: 22px;
+  }
+
+  .employee-dashboard-actions {
+    flex-direction: column;
+  }
+
+  .employee-dashboard-actions button {
+    width: 100%;
+  }
+}
+
+/* =========================================
+   WORKSPHERE — ADMIN USER MANAGEMENT TABLE
+   ========================================= */
+
+.user-management-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  font-size: 14px;
+  box-shadow: 0 5px 20px rgba(30, 27, 75, 0.05);
+}
+
+/* Table header */
+.user-management-table thead th {
+  padding: 16px 18px;
+  background: #f5f4ff;
+  color: #625b8f;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid #e5e1ff;
+  white-space: nowrap;
+}
+
+/* Table rows and cells */
+.user-management-table tbody td {
+  padding: 17px 18px;
+  color: #374151;
+  background: #ffffff;
+  border-bottom: 1px solid #edf0f5;
+  vertical-align: middle;
+  transition: background-color 0.2s ease;
+}
+
+.user-management-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Row hover */
+.user-management-table tbody tr:hover td {
+  background: #f8f7ff;
+}
+
+/* ID column */
+.user-management-table th:first-child,
+.user-management-table td:first-child {
+  color: #7c75a5;
+  font-weight: 600;
+}
+
+/* Username */
+.user-management-table td:nth-child(2) {
+  color: #24213f;
+  font-weight: 700;
+}
+
+/* Email */
+.user-management-table td:nth-child(3) {
+  color: #667085;
+}
+
+/* Role dropdown */
+.user-management-table select {
+  min-width: 125px;
+  padding: 10px 32px 10px 12px;
+  border: 1px solid #dedaf5;
+  border-radius: 9px;
+  background-color: #ffffff;
+  color: #39345f;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-management-table select:hover {
+  border-color: #a69bed;
+}
+
+.user-management-table select:focus {
+  outline: none;
+  border-color: #7660e8;
+  box-shadow: 0 0 0 3px rgba(118, 96, 232, 0.13);
+}
+
+/* Active status badge */
+.user-management-table .status-active {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border: 1px solid #bcebd0;
+  border-radius: 20px;
+  background: #e8f8ef;
+  color: #187746;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Inactive status badge */
+.user-management-table .status-inactive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border: 1px solid #f3caca;
+  border-radius: 20px;
+  background: #fff0f0;
+  color: #b42332;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Action buttons */
+.user-management-table td button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 3px 8px 3px 0;
+  padding: 9px 13px;
+  border: 1px solid #e0e4ec;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #4b5565;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-management-table td button:last-child {
+  margin-right: 0;
+}
+
+/* Deactivate / Activate hover */
+.user-management-table td button:hover {
+  border-color: #b9aff5;
+  background: #f3f0ff;
+  color: #6550cb;
+  transform: translateY(-1px);
+}
+
+/* Delete button — subtle red styling */
+.user-management-table td button:last-child {
+  border-color: #f1d5d8;
+  color: #bd3545;
+  background: #fffafa;
+}
+
+.user-management-table td button:last-child:hover {
+  border-color: #e9aab1;
+  background: #fff0f1;
+  color: #a51d30;
+}
+
+/* Responsive table */
+@media (max-width: 1000px) {
+  .user-management-table {
+    min-width: 760px;
+  }
+}
+
+/* Green status badge */
+.user-management-table .status-active {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Red status badge */
+.user-management-table .status-inactive {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  font-size: 12px;
+  font-weight: 700;
+}

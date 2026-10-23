@@ -1,5 +1,5 @@
 from datetime import date
-from sqlalchemy import Column, Date, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Boolean, Column, DateTime, Date, ForeignKey, Integer, Numeric, String
 from app.database import Base
 
 
@@ -14,3 +14,5 @@ class Employee(Base):
     joining_date = Column(Date, nullable=False, default=date.today)
     salary = Column(Numeric(12, 2), nullable=False, default=0)
     status = Column(String(20), nullable=False, default="ACTIVE")
+    is_late = Column(Boolean, nullable=False, default=False)
+    overtime_hours = Column(Numeric(5, 2), nullable=False, default=0)

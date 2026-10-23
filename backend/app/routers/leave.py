@@ -1,3 +1,6 @@
+
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -6,6 +9,7 @@ from app.models.employee import Employee
 from app.models.leave import Leave
 from app.models.user import User
 from app.models.notification import Notification
+from app.models.leave_balance import LeaveBalance
 from app.routers.auth import get_current_user, require_roles
 from app.schemas.leave import LeaveCreate, LeaveResponse
 
@@ -19,6 +23,10 @@ def get_employee(db: Session, user: User) -> Employee:
     return employee
 
 
+def count_leave_days(start_date, end_date):
+    return (end_date - start_date).days + 1
+
+
 @router.post("/", response_model=LeaveResponse, status_code=201)
 def apply_leave(
     payload: LeaveCreate,
@@ -26,6 +34,56 @@ def apply_leave(
     current_user: User = Depends(get_current_user),
 ):
     employee = get_employee(db, current_user)
+
+    days_requested = count_leave_days(payload.start_date, payload.end_date)
+
+    balance = db.query(LeaveBalance).filter(
+        LeaveBalance.employee_id == employee.id,
+        LeaveBalance.leave_type == payload.leave_type,
+    ).first()
+
+    if not balance:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No {payload.leave_type} leave balance configured for your account",
+        )
+
+    pending_or_approved = db.query(Leave).filter(
+        Leave.employee_id == employee.id,
+        Leave.leave_type == payload.leave_type,
+        Leave.status.in_(["PENDING", "APPROVED"]),
+        Leave.start_date <= payload.end_date,
+        Leave.end_date >= payload.start_date,
+    ).first()
+
+    if pending_or_approved:
+        raise HTTPException(
+            status_code=409,
+            detail="Leave dates overlap an existing pending or approved request",
+        )
+
+    pending_days = 0
+    pending_leaves = db.query(Leave).filter(
+        Leave.employee_id == employee.id,
+        Leave.leave_type == payload.leave_type,
+        Leave.status == "PENDING",
+    ).all()
+
+    for pending_leave in pending_leaves:
+        pending_days += count_leave_days(
+            pending_leave.start_date, pending_leave.end_date
+        )
+
+    if days_requested + pending_days > balance.remaining_days:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Insufficient {payload.leave_type} leave balance. "
+                f"Remaining: {balance.remaining_days}; "
+                f"already pending: {pending_days}; requested: {days_requested}."
+            ),
+        )
+
     leave = Leave(
         employee_id=employee.id,
         **payload.model_dump(),
@@ -65,16 +123,39 @@ def approve_leave(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("HR", "ADMIN")),
 ):
-    leave = db.query(Leave).filter(Leave.id == leave_id).first()
+    leave = db.query(Leave).filter(Leave.id == leave_id).with_for_update().first()
 
     if not leave:
         raise HTTPException(status_code=404, detail="Leave application not found")
     if leave.status != "PENDING":
         raise HTTPException(status_code=409, detail="Leave application already processed")
 
-    leave.status = "APPROVED"
-    employee = db.query(Employee).filter(Employee.id == leave.employee_id).first()
+    days_requested = count_leave_days(leave.start_date, leave.end_date)
 
+    balance = db.query(LeaveBalance).filter(
+        LeaveBalance.employee_id == leave.employee_id,
+        LeaveBalance.leave_type == leave.leave_type,
+    ).with_for_update().first()
+
+    if not balance:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No {leave.leave_type} leave balance configured for this employee",
+        )
+
+    if balance.remaining_days < days_requested:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Insufficient leave balance. Remaining: {balance.remaining_days}; "
+                f"requested: {days_requested}."
+            ),
+        )
+
+    balance.remaining_days -= days_requested
+    leave.status = "APPROVED"
+
+    employee = db.query(Employee).filter(Employee.id == leave.employee_id).first()
     if employee:
         db.add(
             Notification(
@@ -82,7 +163,8 @@ def approve_leave(
                 title="Leave Approved",
                 message=(
                     f"Your {leave.leave_type} leave from {leave.start_date} "
-                    f"to {leave.end_date} has been approved."
+                    f"to {leave.end_date} has been approved. "
+                    f"{days_requested} day(s) deducted from your balance."
                 ),
                 notification_type="LEAVE",
             )
@@ -107,8 +189,8 @@ def reject_leave(
         raise HTTPException(status_code=409, detail="Leave application already processed")
 
     leave.status = "REJECTED"
-    employee = db.query(Employee).filter(Employee.id == leave.employee_id).first()
 
+    employee = db.query(Employee).filter(Employee.id == leave.employee_id).first()
     if employee:
         db.add(
             Notification(

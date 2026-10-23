@@ -13,6 +13,14 @@ from app.schemas.attendance import AttendanceHistoryResponse, AttendanceResponse
 
 router = APIRouter(prefix="/api/attendance", tags=["Attendance"])
 
+IST = timezone(timedelta(hours=5, minutes=30))
+SHIFT_START_HOUR = 9
+STANDARD_WORK_HOURS = 8
+
+
+def local_now():
+    return datetime.now(IST)
+
 
 def get_employee_for_user(db: Session, user: User) -> Employee:
     employee = db.query(Employee).filter(Employee.user_id == user.id).first()
@@ -30,13 +38,24 @@ def check_access(employee_id: int, user: User, db: Session):
     return employee
 
 
+def as_aware(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=IST)
+    return value
+
+
+def hours_between(start: datetime, end: datetime) -> float:
+    return max(0, (as_aware(end) - as_aware(start)).total_seconds() / 3600)
+
+
 @router.post("/check-in", response_model=AttendanceResponse)
 def check_in(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     employee = get_employee_for_user(db, current_user)
-    today = datetime.now().date()
+    now = local_now()
+    today = now.date()
 
     record = db.query(Attendance).filter(
         Attendance.employee_id == employee.id,
@@ -49,10 +68,13 @@ def check_in(
     if not record:
         record = Attendance(employee_id=employee.id, date=today)
 
-    record.check_in = datetime.now(timezone.utc).astimezone(
-    timezone(timedelta(hours=5, minutes=30))
-)
+    record.check_in = now
+    shift_start = now.replace(
+        hour=SHIFT_START_HOUR, minute=0, second=0, microsecond=0
+    )
+    record.is_late = now.time() > shift_start.time()
     record.status = "PRESENT"
+
     db.add(record)
     db.commit()
     db.refresh(record)
@@ -65,7 +87,7 @@ def check_out(
     current_user: User = Depends(get_current_user),
 ):
     employee = get_employee_for_user(db, current_user)
-    today = datetime.now().date()
+    today = local_now().date()
 
     record = db.query(Attendance).filter(
         Attendance.employee_id == employee.id,
@@ -77,21 +99,33 @@ def check_out(
     if record.check_out:
         raise HTTPException(status_code=409, detail="Already checked out today")
 
-    record.check_out = datetime.now(timezone.utc)
-    start = record.check_in
-    end = record.check_out
-
-    if start.tzinfo is None:
-        start = start.replace(tzinfo=timezone.utc)
-    if end.tzinfo is None:
-        end = end.replace(tzinfo=timezone.utc)
-
-    elapsed = (end - start).total_seconds() / 3600
+    now = local_now()
+    record.check_out = now
+    elapsed = hours_between(record.check_in, now)
     record.status = "HALF_DAY" if elapsed < 4 else "PRESENT"
+    record.overtime_hours = round(max(0, elapsed - STANDARD_WORK_HOURS), 2)
 
     db.commit()
     db.refresh(record)
     return record
+
+
+def build_history_response(record: Attendance) -> AttendanceHistoryResponse:
+    working_hours = None
+    if record.check_in and record.check_out:
+        working_hours = round(hours_between(record.check_in, record.check_out), 2)
+
+    return AttendanceHistoryResponse(
+        id=record.id,
+        employee_id=record.employee_id,
+        date=record.date,
+        check_in=record.check_in,
+        check_out=record.check_out,
+        status=record.status,
+        is_late=record.is_late,
+        overtime_hours=record.overtime_hours or 0,
+        working_hours=working_hours,
+    )
 
 
 @router.get("/history", response_model=list[AttendanceHistoryResponse])
@@ -106,37 +140,13 @@ def attendance_history(
         .order_by(Attendance.date.desc())
         .all()
     )
-
-    results = []
-    for record in records:
-        working_hours = None
-        if record.check_in and record.check_out:
-            start = record.check_in
-            end = record.check_out
-
-            if start.tzinfo is None:
-                start = start.replace(tzinfo=timezone.utc)
-            if end.tzinfo is None:
-                end = end.replace(tzinfo=timezone.utc)
-
-            working_hours = round((end - start).total_seconds() / 3600, 2)
-
-        results.append(
-            AttendanceHistoryResponse(
-                id=record.id,
-                employee_id=record.employee_id,
-                date=record.date,
-                check_in=record.check_in,
-                check_out=record.check_out,
-                status=record.status,
-                working_hours=working_hours,
-            )
-        )
-
-    return results
+    return [build_history_response(record) for record in records]
 
 
-@router.get("/employee/{employee_id}/history", response_model=list[AttendanceHistoryResponse])
+@router.get(
+    "/employee/{employee_id}/history",
+    response_model=list[AttendanceHistoryResponse],
+)
 def employee_attendance_history(
     employee_id: int,
     db: Session = Depends(get_db),
@@ -149,37 +159,13 @@ def employee_attendance_history(
         .order_by(Attendance.date.desc())
         .all()
     )
-
-    results = []
-    for record in records:
-        working_hours = None
-        if record.check_in and record.check_out:
-            start = record.check_in
-            end = record.check_out
-
-            if start.tzinfo is None:
-                start = start.replace(tzinfo=timezone.utc)
-            if end.tzinfo is None:
-                end = end.replace(tzinfo=timezone.utc)
-
-            working_hours = round((end - start).total_seconds() / 3600, 2)
-
-        results.append(
-            AttendanceHistoryResponse(
-                id=record.id,
-                employee_id=record.employee_id,
-                date=record.date,
-                check_in=record.check_in,
-                check_out=record.check_out,
-                status=record.status,
-                working_hours=working_hours,
-            )
-        )
-
-    return results
+    return [build_history_response(record) for record in records]
 
 
-@router.post("/employee/{employee_id}/mark-absent", response_model=AttendanceResponse)
+@router.post(
+    "/employee/{employee_id}/mark-absent",
+    response_model=AttendanceResponse,
+)
 def mark_absent(
     employee_id: int,
     db: Session = Depends(get_db),
@@ -189,18 +175,26 @@ def mark_absent(
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
 
-    today = datetime.now().date()
+    today = local_now().date()
     record = db.query(Attendance).filter(
         Attendance.employee_id == employee_id,
         Attendance.date == today,
     ).first()
 
     if record:
-        raise HTTPException(status_code=409, detail="Attendance already exists for today")
+        raise HTTPException(
+            status_code=409,
+            detail="Attendance already exists for today",
+        )
 
-    record = Attendance(employee_id=employee_id, date=today, status="ABSENT")
+    record = Attendance(
+        employee_id=employee_id,
+        date=today,
+        status="ABSENT",
+        is_late=False,
+        overtime_hours=0,
+    )
     db.add(record)
-
     db.add(
         Notification(
             user_id=employee.user_id,
@@ -209,17 +203,18 @@ def mark_absent(
             notification_type="ATTENDANCE",
         )
     )
-
     db.commit()
     db.refresh(record)
     return record
+
+
 @router.get("/overview")
 def attendance_overview(
     attendance_date: date | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("HR", "ADMIN")),
 ):
-    selected_date = attendance_date or datetime.now().date()
+    selected_date = attendance_date or local_now().date()
 
     employees = (
         db.query(Employee)
@@ -230,26 +225,16 @@ def attendance_overview(
 
     results = []
     for employee in employees:
-        record = (
-            db.query(Attendance)
-            .filter(
-                Attendance.employee_id == employee.id,
-                Attendance.date == selected_date,
-            )
-            .first()
-        )
+        record = db.query(Attendance).filter(
+            Attendance.employee_id == employee.id,
+            Attendance.date == selected_date,
+        ).first()
 
         working_hours = None
         if record and record.check_in and record.check_out:
-            start = record.check_in
-            end = record.check_out
-
-            if start.tzinfo is None:
-                start = start.replace(tzinfo=timezone.utc)
-            if end.tzinfo is None:
-                end = end.replace(tzinfo=timezone.utc)
-
-            working_hours = round((end - start).total_seconds() / 3600, 2)
+            working_hours = round(
+                hours_between(record.check_in, record.check_out), 2
+            )
 
         results.append({
             "employee_id": employee.id,
@@ -260,6 +245,8 @@ def attendance_overview(
             "check_in": record.check_in if record else None,
             "check_out": record.check_out if record else None,
             "working_hours": working_hours,
+            "is_late": record.is_late if record else False,
+            "overtime_hours": record.overtime_hours if record else 0,
             "status": record.status if record else "NOT_MARKED",
         })
 

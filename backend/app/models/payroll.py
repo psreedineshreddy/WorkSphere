@@ -32,6 +32,7 @@ class Payroll(Base):
         index=True,
     )
     basic_salary = Column(Numeric(12, 2), nullable=False)
+    allowances = Column(Numeric(12, 2), nullable=False, default=0)
     deductions = Column(Numeric(12, 2), nullable=False, default=0)
     bonus = Column(Numeric(12, 2), nullable=False, default=0)
     net_salary = Column(Numeric(12, 2), nullable=False)

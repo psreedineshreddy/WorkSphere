@@ -10,6 +10,7 @@ const navigation = [
   { name: "Leave Management", icon: "▤" },
   { name: "Payroll", icon: "₹" },
   { name: "Notifications", icon: "🔔" },
+  { name: "User Management", icon: "⚙️" },
 ];
 
 const emptyEmployee = {
@@ -28,9 +29,16 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [username, setUsername] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registerUsername, setRegisterUsername] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [loginRole, setLoginRole] = useState("EMPLOYEE");
+  const [registerRole, setRegisterRole] = useState("EMPLOYEE");
+  const [registerError, setRegisterError] = useState("");
+  const [registerMessage, setRegisterMessage] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-
   const [employees, setEmployees] = useState([]);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [employeeStatus, setEmployeeStatus] = useState("");
@@ -42,6 +50,17 @@ function App() {
   const [savingEmployee, setSavingEmployee] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [managedUsers, setManagedUsers] = useState([]);
+const [userManagementLoading, setUserManagementLoading] = useState(false);
+const [userManagementError, setUserManagementError] = useState("");
+const [userManagementMessage, setUserManagementMessage] = useState("");
+const [showUserForm, setShowUserForm] = useState(false);
+const [userForm, setUserForm] = useState({
+  username: "",
+  email: "",
+  password: "",
+  role: "EMPLOYEE",
+});
 
   const loadWorkspace = useCallback(async () => {
     try {
@@ -83,6 +102,19 @@ function App() {
       setEmployeeLoading(false);
     }
   }, [employeeSearch, employeeStatus]);
+  const loadManagedUsers = useCallback(async () => {
+  setUserManagementLoading(true);
+  setUserManagementError("");
+
+  try {
+    const data = await apiRequest("/api/admin/users/");
+    setManagedUsers(Array.isArray(data) ? data : []);
+  } catch (err) {
+    setUserManagementError(err.message || "Unable to load users.");
+  } finally {
+    setUserManagementLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     if (localStorage.getItem("worksphere_token")) {
@@ -113,23 +145,37 @@ function App() {
     }
   }, [user, activePage, loadEmployees]);
 
-  async function handleLogin(event) {
-    event.preventDefault();
-    setError("");
-    setBusy(true);
+  useEffect(() => {
+  if (user?.role === "ADMIN" && activePage === "User Management") {
+    loadManagedUsers();
+  }
+}, [user, activePage, loadManagedUsers]);
 
-    try {
-      await loginUser(username, password);
-      await loadWorkspace();
-      setPassword("");
-    } catch (err) {
-      logoutUser();
-      setError(err.message || "Unable to sign in.");
-    } finally {
-      setBusy(false);
-    }
+async function handleLogin(event) {
+  event.preventDefault();
+  setError("");
+  setBusy(true);
+
+try {
+  await loginUser(username, password);
+
+  const currentUser = await apiRequest("/api/auth/me");
+
+  if (currentUser.role !== loginRole) {
+    logoutUser();
+    setError(`This account is not registered as ${loginRole}.`);
+    return;
   }
 
+  await loadWorkspace();
+  setPassword("");
+} catch (err) {
+  logoutUser();
+  setError(err.message || "Unable to sign in.");
+} finally {
+  setBusy(false);
+}
+}
   function handleLogout() {
     logoutUser();
     setUser(null);
@@ -162,6 +208,96 @@ function App() {
     setEmployeeError("");
     setShowEmployeeForm(true);
   }
+    async function handleRegister(event) {
+    event.preventDefault();
+    setRegisterError("");
+    setRegisterMessage("");
+    setBusy(true);
+
+    try {
+      await apiRequest("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          username: registerUsername,
+          email: registerEmail,
+          password: registerPassword,
+        }),
+      });
+
+      setRegisterMessage("Account created successfully. You can now sign in.");
+      setIsRegistering(false);
+      setUsername(registerUsername);
+      setPassword("");
+      setRegisterUsername("");
+      setRegisterEmail("");
+      setRegisterPassword("");
+    } catch (err) {
+      setRegisterError(err.message || "Unable to create account.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleCreateUser(event) {
+  event.preventDefault();
+  setUserManagementError("");
+  setUserManagementMessage("");
+
+  try {
+    await apiRequest("/api/admin/users/", {
+      method: "POST",
+      body: JSON.stringify(userForm),
+    });
+
+    setUserManagementMessage("User created successfully.");
+    setUserForm({
+      username: "",
+      email: "",
+      password: "",
+      role: "EMPLOYEE",
+    });
+    setShowUserForm(false);
+    await loadManagedUsers();
+  } catch (err) {
+    setUserManagementError(err.message || "Unable to create user.");
+  }
+}
+async function handleUpdateManagedUser(userId, updates) {
+  setUserManagementError("");
+  setUserManagementMessage("");
+
+  try {
+    await apiRequest(`/api/admin/users/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
+    });
+
+    setUserManagementMessage("User updated successfully.");
+    await loadManagedUsers();
+  } catch (err) {
+    setUserManagementError(err.message || "Unable to update user.");
+  }
+}
+
+async function handleDeleteManagedUser(userId) {
+  if (!window.confirm("Are you sure you want to delete this user?")) {
+    return;
+  }
+
+  setUserManagementError("");
+  setUserManagementMessage("");
+
+  try {
+    await apiRequest(`/api/admin/users/${userId}`, {
+      method: "DELETE",
+    });
+
+    setUserManagementMessage("User deleted successfully.");
+    await loadManagedUsers();
+  } catch (err) {
+    setUserManagementError(err.message || "Unable to delete user.");
+  }
+}
 
   async function handleEmployeeSubmit(event) {
     event.preventDefault();
@@ -244,34 +380,138 @@ function App() {
             <p>Sign in to manage your workday, team, and HR activities.</p>
           </div>
 
-          <form className="login-form" onSubmit={handleLogin}>
-            <label htmlFor="username">Username</label>
-            <input
-              id="username"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              placeholder="Enter your username"
-              autoComplete="username"
-              required
-            />
 
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              required
-            />
+{isRegistering ? (
+  <form className="login-form" onSubmit={handleRegister}>
+    <label htmlFor="register-role">Register as</label>
+<select
+  id="register-role"
+  value={registerRole}
+  onChange={(event) => setRegisterRole(event.target.value)}
+  required
+>
+  <option value="EMPLOYEE">Employee</option>
+</select>
+    <label htmlFor="register-username">Username</label>
+    <input
+      id="register-username"
+      value={registerUsername}
+      onChange={(event) => setRegisterUsername(event.target.value)}
+      placeholder="Choose a username"
+      autoComplete="username"
+      minLength={3}
+      required
+    />
 
-            {error && <div className="login-error">{error}</div>}
+    <label htmlFor="register-email">Email</label>
+    <input
+      id="register-email"
+      type="email"
+      value={registerEmail}
+      onChange={(event) => setRegisterEmail(event.target.value)}
+      placeholder="Enter your email"
+      autoComplete="email"
+      required
+    />
 
-            <button className="primary-button login-button" disabled={busy}>
-              {busy ? "Signing in..." : "Sign in to your workspace →"}
-            </button>
-          </form>
+    <label htmlFor="register-password">Password</label>
+    <input
+      id="register-password"
+      type="password"
+      value={registerPassword}
+      onChange={(event) => setRegisterPassword(event.target.value)}
+      placeholder="Create a password"
+      autoComplete="new-password"
+      minLength={8}
+      required
+    />
+
+    {registerError && (
+      <div className="login-error">{registerError}</div>
+    )}
+    {registerMessage && (
+      <div className="login-success">{registerMessage}</div>
+    )}
+
+    <button className="primary-button login-button" disabled={busy}>
+      {busy ? "Creating account..." : "Create account →"}
+    </button>
+
+    <p className="auth-switch">
+      Already have an account?{" "}
+      <button
+        type="button"
+        className="auth-link"
+        onClick={() => {
+          setIsRegistering(false);
+          setRegisterError("");
+          setRegisterMessage("");
+        }}
+      >
+        Sign in
+      </button>
+    </p>
+  </form>
+) : (
+  <form className="login-form" onSubmit={handleLogin}>
+    <label htmlFor="login-role">Sign in as</label>
+<select
+  id="login-role"
+  value={loginRole}
+  onChange={(event) => setLoginRole(event.target.value)}
+  required
+>
+  <option value="EMPLOYEE">Employee</option>
+  <option value="HR">HR</option>
+  <option value="ADMIN">Admin</option>
+</select>
+    <label htmlFor="username">Username</label>
+    <input
+      id="username"
+      value={username}
+      onChange={(event) => setUsername(event.target.value)}
+      placeholder="Enter your username"
+      autoComplete="username"
+      required
+    />
+
+    <label htmlFor="password">Password</label>
+    <input
+      id="password"
+      type="password"
+      value={password}
+      onChange={(event) => setPassword(event.target.value)}
+      placeholder="Enter your password"
+      autoComplete="current-password"
+      required
+    />
+
+    {error && <div className="login-error">{error}</div>}
+    {registerMessage && (
+      <div className="login-success">{registerMessage}</div>
+    )}
+
+    <button className="primary-button login-button" disabled={busy}>
+      {busy ? "Signing in..." : "Sign in to your workspace →"}
+    </button>
+
+    <p className="auth-switch">
+      Don't have an account?{" "}
+      <button
+        type="button"
+        className="auth-link"
+        onClick={() => {
+          setIsRegistering(true);
+          setError("");
+          setRegisterError("");
+          setRegisterMessage("");
+        }}
+      >
+        Register
+      </button>
+    </p>
+  </form>
+)}
 
           <div className="login-footer">Secure sign-in · Role-based access</div>
         </section>
@@ -320,11 +560,24 @@ function App() {
     },
   ];
 
-  const allowedNavigation = isManager
-    ? navigation
-    : navigation.filter((item) =>
-        ["Dashboard", "My Profile", "Attendance", "Leave Management", "Notifications"].includes(item.name)
-      );
+const allowedNavigation = navigation.filter((item) => {
+  if (item.name === "User Management") {
+    return user.role === "ADMIN";
+  }
+
+  if (user.role === "HR") {
+    return item.name !== "User Management";
+  }
+
+  return [
+    "Dashboard",
+    "My Profile",
+    "Attendance",
+    "Leave Management",
+    "Payroll",
+    "Notifications",
+  ].includes(item.name);
+});
 
   return (
     <div className="app-shell">
@@ -459,37 +712,10 @@ function App() {
                   ))}
                 </div>
               ) : (
-                <div className="employee-welcome-panel">
-                  <div className="empty-illustration">♙</div>
-                  <h2>Your employee workspace</h2>
-                  <p>
-                    Use the navigation to check attendance, submit leave requests,
-                    and review your notifications.
-                  </p>
-                </div>
-              )}
-
-              {isManager && summary && (
-                <div className="panel dashboard-details">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>HR summary</h2>
-                      <p>Additional workforce indicators</p>
-                    </div>
-                  </div>
-                  <div className="summary-row">
-                    <span>Active employees</span>
-                    <strong>{summary.active_employees ?? "—"}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>Attendance records</span>
-                    <strong>{summary.total_attendance_records ?? "—"}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>Approved leaves</span>
-                    <strong>{summary.approved_leave_requests ?? "—"}</strong>
-                  </div>
-                </div>
+<EmployeeDashboard
+  user={user}
+  setActivePage={setActivePage}
+/>
 
               )}
               {isManager && summary && (
@@ -807,6 +1033,170 @@ function App() {
             <PayrollPage user={user} />
           ) : activePage === "Notifications" ? (
             <NotificationsPage />
+          ) : activePage === "User Management" && user.role === "ADMIN" ? (
+            <div className="panel">
+              <div className="panel-heading">
+                <div>
+                  <h2>User Management</h2>
+                  <p>Manage accounts, roles, and access permissions.</p>
+                </div>
+                <button
+                  className="primary-button"
+                  onClick={() => {
+                    setUserManagementError("");
+                    setUserManagementMessage("");
+                    setShowUserForm((current) => !current);
+                  }}
+                >
+                  {showUserForm ? "Cancel" : "+ Add User"}
+                </button>
+              </div>
+
+              {userManagementError && (
+                <p className="error-message">{userManagementError}</p>
+              )}
+              {userManagementMessage && (
+                <p className="success-message">{userManagementMessage}</p>
+              )}
+
+              {showUserForm && (
+                <form onSubmit={handleCreateUser} className="user-management-form">
+                  <label>
+                    Username
+                    <input
+                      value={userForm.username}
+                      onChange={(event) =>
+                        setUserForm({ ...userForm, username: event.target.value })
+                      }
+                      minLength={3}
+                      maxLength={50}
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Email
+                    <input
+                      type="email"
+                      value={userForm.email}
+                      onChange={(event) =>
+                        setUserForm({ ...userForm, email: event.target.value })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Password
+                    <input
+                      type="password"
+                      value={userForm.password}
+                      onChange={(event) =>
+                        setUserForm({ ...userForm, password: event.target.value })
+                      }
+                      minLength={8}
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Role
+                    <select
+                      value={userForm.role}
+                      onChange={(event) =>
+                        setUserForm({ ...userForm, role: event.target.value })
+                      }
+                    >
+                      <option value="EMPLOYEE">Employee</option>
+                      <option value="HR">HR</option>
+                      <option value="ADMIN">Admin</option>
+                    </select>
+                  </label>
+
+                  <button className="primary-button" type="submit">
+                    Create User
+                  </button>
+                </form>
+              )}
+
+              {userManagementLoading ? (
+                <p>Loading users...</p>
+              ) : managedUsers.length === 0 ? (
+                <p>No users found.</p>
+              ) : (
+                <div className="user-management-table-wrapper">
+                 <table className="user-management-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {managedUsers.map((managedUser) => (
+                        <tr key={managedUser.id}>
+                          <td>{managedUser.id}</td>
+                          <td>{managedUser.username}</td>
+                          <td>{managedUser.email}</td>
+                          <td>
+                            <select
+                              value={managedUser.role}
+                              onChange={(event) =>
+                                handleUpdateManagedUser(managedUser.id, {
+                                  role: event.target.value,
+                                })
+                              }
+                            >
+                              <option value="EMPLOYEE">Employee</option>
+                              <option value="HR">HR</option>
+                              <option value="ADMIN">Admin</option>
+                            </select>
+                          </td>
+                          <td>
+<span
+  className={`user-management-status ${
+    managedUser.is_active ? "active" : "inactive"
+  }`}
+>
+  {managedUser.is_active ? "Active" : "Inactive"}
+</span>
+                          </td>
+                          <td>
+                            <div className="table-actions">
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={() =>
+                                  handleUpdateManagedUser(managedUser.id, {
+                                    is_active: !managedUser.is_active,
+                                  })
+                                }
+                              >
+                                {managedUser.is_active ? "Deactivate" : "Activate"}
+                              </button>
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                disabled={managedUser.id === user.id}
+                                onClick={() =>
+                                  handleDeleteManagedUser(managedUser.id)
+                                }
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="panel page-placeholder">
               <div className="empty-illustration">▥</div>
@@ -1131,6 +1521,8 @@ function AttendancePage({ user }) {
                   <th>Check in</th>
                   <th>Check out</th>
                   <th>Working hours</th>
+                  <th>Late status</th>
+                  <th>Overtime</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -1160,6 +1552,12 @@ function AttendancePage({ user }) {
                       <td>{formatTime(checkIn)}</td>
                       <td>{formatTime(checkOut)}</td>
                       <td>{formatHours(record)}</td>
+                      <td>
+  <span className={`status-pill ${record.is_late ? "late" : "on-time"}`}>
+    {record.is_late ? "Late" : "On Time"}
+  </span>
+</td>
+<td>{Number(record.overtime_hours ?? 0).toFixed(2)} hrs</td>
                       <td>
                         <span className={`status-pill ${String(status).toLowerCase()}`}>
                           {String(status).replaceAll("_", " ")}
@@ -1192,6 +1590,8 @@ export default App;
 
 function LeavePage({ user }) {
   const [leaves, setLeaves] = useState([]);
+  const [leaveBalances, setLeaveBalances] = useState([]);
+  const [leavePolicies, setLeavePolicies] = useState([]); 
   const [leaveType, setLeaveType] = useState("SICK");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -1215,9 +1615,26 @@ function LeavePage({ user }) {
     }
   }, []);
 
-  useEffect(() => {
-    loadLeaves();
-  }, [loadLeaves]);
+  const loadLeaveInfo = useCallback(async () => {
+  try {
+    const policies = await apiRequest("/api/leave-policies/");
+    setLeavePolicies(Array.isArray(policies) ? policies : []);
+
+    if (!isHR) {
+      const balances = await apiRequest("/api/leave-policies/my-balance");
+      setLeaveBalances(Array.isArray(balances) ? balances : []);
+    } else {
+      setLeaveBalances([]);
+    }
+  } catch (err) {
+    setError(err.message || "Could not load leave policies and balances.");
+  }
+}, [isHR]);
+
+useEffect(() => {
+  loadLeaves();
+  loadLeaveInfo();
+}, [loadLeaves, loadLeaveInfo]);
 
   async function applyLeave(event) {
     event.preventDefault();
@@ -1245,6 +1662,7 @@ function LeavePage({ user }) {
       setEndDate("");
       setReason("");
       await loadLeaves();
+      await loadLeaveInfo();
     } catch (err) {
       setError(err.message || "Could not submit leave application.");
     }
@@ -1260,6 +1678,7 @@ function LeavePage({ user }) {
       });
       setMessage(`Leave application ${action === "approve" ? "approved" : "rejected"} successfully.`);
       await loadLeaves();
+      await loadLeaveInfo();
     } catch (err) {
       setError(err.message || "Could not update leave application.");
     }
@@ -1267,6 +1686,60 @@ function LeavePage({ user }) {
 
   return (
     <div style={{ display: "grid", gap: 24 }}>
+
+<section className="panel">
+  <div className="panel-heading">
+    <div>
+      <h2>{isHR ? "Policy Overview" : "My Leave Balances"}</h2>
+      <p>
+        {isHR
+          ? "Configured leave allowance by type."
+          : "Check your remaining leave allowance."}
+      </p>
+    </div>
+    <button
+      type="button"
+      className="secondary-button"
+      onClick={loadLeaveInfo}
+    >
+      Refresh
+    </button>
+  </div>
+
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+      gap: 16,
+    }}
+  >
+    {leavePolicies.map((policy) => {
+      const balance = leaveBalances.find(
+        (item) => item.leave_type === policy.leave_type
+      );
+
+      return (
+        <div
+          key={policy.id}
+          style={{
+            padding: 16,
+            border: "1px solid #e2e8f0",
+            borderRadius: 12,
+          }}
+        >
+          <strong>{policy.leave_type} Leave</strong>
+          <p>Allowed: {policy.total_days_allowed} days</p>
+          {!isHR && (
+            <p>
+              Remaining: {balance?.remaining_days ?? "—"} days
+            </p>
+          )}
+        </div>
+      );
+    })}
+  </div>
+</section>
+
       {!isHR && (
         <section className="panel">
           <div className="panel-heading">
@@ -1585,6 +2058,7 @@ function NotificationsPage() {
 
 function PayrollPage({ user }) {
   const [payrolls, setPayrolls] = useState([]);
+  const [selectedPayslip, setSelectedPayslip] = useState(null);
   const [employees, setEmployees] = useState([]);
   const [employeeId, setEmployeeId] = useState("");
   const [month, setMonth] = useState("2026-10");
@@ -1600,7 +2074,9 @@ function PayrollPage({ user }) {
   const loadPayroll = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiRequest("/api/payroll/");
+      const data = await apiRequest(
+  isHR ? "/api/payroll/" : "/api/payroll/my"
+);
       setPayrolls(Array.isArray(data) ? data : []);
       setError("");
 
@@ -1781,10 +2257,12 @@ function PayrollPage({ user }) {
                   {isHR && <th>Employee ID</th>}
                   <th>Month</th>
                   <th>Basic Salary</th>
+                  <th>Allowances</th>
                   <th>Deductions</th>
                   <th>Bonus</th>
                   <th>Net Salary</th>
                   <th>Created At</th>
+                  <th>Payslip</th>
                 </tr>
               </thead>
               <tbody>
@@ -1793,6 +2271,7 @@ function PayrollPage({ user }) {
                     {isHR && <td>{record.employee_id}</td>}
                     <td>{record.month}</td>
                     <td>{money(record.basic_salary)}</td>
+                    <td>{money(record.allowances)}</td>
                     <td>{money(record.deductions)}</td>
                     <td>{money(record.bonus)}</td>
                     <td>
@@ -1803,6 +2282,15 @@ function PayrollPage({ user }) {
                         ? new Date(record.created_at).toLocaleDateString()
                         : "—"}
                     </td>
+                    <td>
+<button
+  type="button"
+  className="primary-button"
+  onClick={() => setSelectedPayslip(record)}
+>
+  View Payslip
+</button>
+</td>
                   </tr>
                 ))}
               </tbody>
@@ -1810,6 +2298,212 @@ function PayrollPage({ user }) {
           </div>
         )}
       </section>
+{selectedPayslip && (
+  <section
+    className="panel payslip-document"
+    style={{
+      maxWidth: 720,
+      margin: "24px auto",
+      padding: "24px 28px",
+      background: "#fff",
+      color: "#222",
+      border: "1px solid #d5d9de",
+      borderRadius: 4,
+      boxShadow: "none",
+      fontSize: 13,
+      lineHeight: 1.5,
+    }}
+  >
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingBottom: 14,
+        borderBottom: "2px solid #374151",
+      }}
+    >
+      <div>
+        <h2 style={{ margin: 0, fontSize: 19, fontWeight: 600 }}>
+          WorkSphere
+        </h2>
+        <p style={{ margin: "3px 0 0", color: "#64748b", fontSize: 11 }}>
+          Human Resources Management
+        </p>
+      </div>
+
+      <div style={{ textAlign: "right" }}>
+        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
+          SALARY SLIP
+        </h3>
+        <p style={{ margin: "4px 0 0", color: "#475569" }}>
+          Pay period: {selectedPayslip.month}
+        </p>
+      </div>
+    </div>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "12px 24px",
+        margin: "18px 0",
+        paddingBottom: 14,
+        borderBottom: "1px solid #e5e7eb",
+      }}
+    >
+      <div>
+        <span style={{ color: "#64748b" }}>Employee ID: </span>
+        <strong>{selectedPayslip.employee_id}</strong>
+      </div>
+
+      <div>
+        <span style={{ color: "#64748b" }}>Payroll Month: </span>
+        <strong>{selectedPayslip.month}</strong>
+      </div>
+
+      <div>
+        <span style={{ color: "#64748b" }}>Generated On: </span>
+        <strong>
+          {selectedPayslip.created_at
+            ? new Date(selectedPayslip.created_at).toLocaleDateString()
+            : "—"}
+        </strong>
+      </div>
+    </div>
+
+    <h3
+      style={{
+        margin: "20px 0 10px",
+        fontSize: 13,
+        fontWeight: 600,
+      }}
+    >
+      Salary Details
+    </h3>
+
+    <table
+      style={{
+        width: "100%",
+        borderCollapse: "collapse",
+        fontSize: 13,
+        border: "1px solid #d5d9de",
+      }}
+    >
+      <thead>
+        <tr style={{ background: "#f3f4f6" }}>
+          <th
+            style={{
+              padding: "9px 12px",
+              textAlign: "left",
+              borderBottom: "1px solid #d5d9de",
+              fontWeight: 600,
+            }}
+          >
+            Description
+          </th>
+          <th
+            style={{
+              padding: "9px 12px",
+              textAlign: "right",
+              borderBottom: "1px solid #d5d9de",
+              fontWeight: 600,
+            }}
+          >
+            Amount (₹)
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {[
+          ["Basic Salary", selectedPayslip.basic_salary],
+          ["Allowances", selectedPayslip.allowances ?? 0],
+          ["Bonus", selectedPayslip.bonus],
+          ["Deductions", -Number(selectedPayslip.deductions)],
+        ].map(([label, amount]) => (
+          <tr key={label}>
+            <td
+              style={{
+                padding: "9px 12px",
+                borderBottom: "1px solid #e5e7eb",
+              }}
+            >
+              {label}
+            </td>
+            <td
+              style={{
+                padding: "9px 12px",
+                textAlign: "right",
+                whiteSpace: "nowrap",
+                borderBottom: "1px solid #e5e7eb",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {Number(amount) < 0 ? "− " : ""}
+              {money(Math.abs(Number(amount)))}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 16,
+        flexWrap: "nowrap",
+        marginTop: 14,
+        padding: "12px",
+        background: "#f3f4f6",
+        border: "1px solid #d5d9de",
+      }}
+    >
+      <strong style={{ fontSize: 13, whiteSpace: "nowrap" }}>
+        Net Salary Payable
+      </strong>
+      <strong style={{ fontSize: 15, whiteSpace: "nowrap" }}>
+        {money(selectedPayslip.net_salary)}
+      </strong>
+    </div>
+
+    <p
+      style={{
+        margin: "16px 0 0",
+        paddingTop: 10,
+        borderTop: "1px solid #e5e7eb",
+        textAlign: "center",
+        color: "#64748b",
+        fontSize: 10,
+      }}
+    >
+      This is a system-generated salary statement.
+    </p>
+
+    <div
+      className="payslip-actions"
+      style={{ display: "flex", gap: 10, marginTop: 16 }}
+    >
+      <button
+        type="button"
+        className="secondary-button"
+        onClick={() => window.print()}
+      >
+        Print Payslip
+      </button>
+<div style={{ width: "100%", display: "flex", justifyContent: "flex-end" }}></div>
+      <button
+        type="button"
+        className="secondary-button"
+        onClick={() => setSelectedPayslip(null)}
+      >
+        Close 
+      </button>
+    </div>
+  </section>
+)}
     </div>
   );
 }
@@ -1905,6 +2599,47 @@ try {
           are shown above.
         </p>
       )}
+    </div>
+  );
+}
+function EmployeeDashboard({ user, setActivePage }) {
+  return (
+    <div className="employee-dashboard">
+      <div className="employee-welcome-panel">
+        <span className="dashboard-eyebrow">EMPLOYEE WORKSPACE</span>
+        <h2>Welcome back, {user?.username || "Employee"}! 👋</h2>
+        <p>Keep track of your workday, leave, and payroll in one place.</p>
+
+        <div className="employee-dashboard-actions">
+          <button
+            className="secondary-button"
+            onClick={() => setActivePage("Attendance")}
+          >
+            View Attendance
+          </button>
+
+          <button
+            className="secondary-button"
+            onClick={() => setActivePage("Leave Management")}
+          >
+            Manage Leave
+          </button>
+
+          <button
+            className="secondary-button"
+            onClick={() => setActivePage("Payroll")}
+          >
+            View Payroll
+          </button>
+
+          <button
+            className="secondary-button"
+            onClick={() => setActivePage("Notifications")}
+          >
+            Notifications
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

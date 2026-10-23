@@ -57,11 +57,14 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
 def authenticate_user(username: str, password: str, db: Session):
     user = db.query(User).filter(User.username == username).first()
 
-    if not user or not verify_password(password, user.hashed_password):
+    if (
+        not user
+        or not user.is_active
+        or not verify_password(password, user.hashed_password)
+    ):
         return None
 
     return user
-
 
 def build_token_response(user: User) -> TokenResponse:
     token = create_access_token(user.id, user.role)
@@ -130,7 +133,7 @@ def get_current_user(
 
     user = db.query(User).filter(User.id == user_id).first()
 
-    if not user:
+    if not user or not user.is_active:
         raise credentials_error
 
     return user
