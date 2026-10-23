@@ -1,4 +1,3 @@
-
 # WorkSphere HRMS
 
 A Human Resource Management System built with **React, FastAPI, SQLAlchemy, and SQLite** to simplify employee management and everyday HR operations.
@@ -37,6 +36,11 @@ A Human Resource Management System built with **React, FastAPI, SQLAlchemy, and 
 ### 7. Notifications
 - View notifications and HR activity updates
 
+### 8. Admin User Management
+- View and manage user accounts
+- Activate or deactivate user accounts
+- Delete user accounts, subject to application permissions
+
 ## Technology Stack
 
 | Layer | Technologies |
@@ -68,6 +72,7 @@ WorkSphere/
 │   ├── package.json
 │   └── index.html
 ├── Phase 1 Screenshots/
+├── Phase 2 Screenshots/
 ├── .gitignore
 └── README.md
 ```
@@ -79,6 +84,8 @@ WorkSphere/
 - Node.js and npm
 
 ### Backend Setup
+
+From the project root, run:
 
 ```bash
 cd backend
@@ -95,12 +102,12 @@ Start the backend:
 uvicorn app.main:app --reload
 ```
 
-- Backend: http://127.0.0.1:8000
-- API documentation: http://127.0.0.1:8000/docs
+- **Backend:** http://127.0.0.1:8000
+- **API documentation:** http://127.0.0.1:8000/docs
 
 ### Frontend Setup
 
-Open a second terminal:
+Open a second terminal from the project root:
 
 ```bash
 cd frontend
@@ -112,11 +119,12 @@ Open the local URL shown by Vite, usually http://localhost:5173.
 
 ## Screenshots
 
-See the `Phase 1 Screenshots/` folder for application and API screenshots.
+Refer to the `Phase 1 Screenshots/` and `Phase 2 Screenshots/` folders for application screenshots and development evidence.
 
 ## Security
 
 - Keep secret keys and credentials private.
 - Do not commit `.env` files.
-- Local databases, virtual environments, and installed frontend dependencies are excluded from version control.
+- Use `.env.example` to document required environment variables without exposing real credentials.
+- Exclude local databases, virtual environments, and installed frontend dependencies from version control.
 
