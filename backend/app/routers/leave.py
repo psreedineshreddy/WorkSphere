@@ -1,5 +1,4 @@
-
-from datetime import timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -50,7 +49,6 @@ def apply_leave(
 
     pending_or_approved = db.query(Leave).filter(
         Leave.employee_id == employee.id,
-        Leave.leave_type == payload.leave_type,
         Leave.status.in_(["PENDING", "APPROVED"]),
         Leave.start_date <= payload.end_date,
         Leave.end_date >= payload.start_date,
@@ -207,3 +205,46 @@ def reject_leave(
     db.commit()
     db.refresh(leave)
     return leave
+@router.get("/calendar")
+def leave_calendar(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("HR", "ADMIN")),
+):
+    query = (
+        db.query(
+            Leave.id,
+            Leave.employee_id,
+            Employee.full_name,
+            Employee.department,
+            Leave.leave_type,
+            Leave.start_date,
+            Leave.end_date,
+            Leave.status,
+        )
+        .join(Employee, Employee.id == Leave.employee_id)
+        .filter(Leave.status == "APPROVED")
+    )
+
+    if start_date:
+        query = query.filter(Leave.end_date >= start_date)
+
+    if end_date:
+        query = query.filter(Leave.start_date <= end_date)
+
+    records = query.order_by(Leave.start_date).all()
+
+    return [
+        {
+            "id": row.id,
+            "employee_id": row.employee_id,
+            "full_name": row.full_name,
+            "department": row.department,
+            "leave_type": row.leave_type,
+            "start_date": row.start_date,
+            "end_date": row.end_date,
+            "status": row.status,
+        }
+        for row in records
+    ]

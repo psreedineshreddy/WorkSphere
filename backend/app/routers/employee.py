@@ -1,9 +1,14 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.employee import Employee
 from app.models.user import User
+from app.models.attendance import Attendance
+from app.models.performance import PerformanceReview
 from app.routers.auth import get_current_user, require_roles
 from app.schemas.employee import EmployeeCreate, EmployeeResponse, EmployeeUpdate
 
@@ -29,30 +34,95 @@ def create_employee(
     db.refresh(employee)
     return employee
 
-
 @router.get("/", response_model=list[EmployeeResponse])
 def list_employees(
-    search: str | None = Query(default=None, description="Search name, designation, or department"),
+    search: str | None = Query(
+        default=None,
+        description="Search name, designation, or department",
+    ),
     department: str | None = None,
-    employee_status: str | None = Query(default=None, alias="status", pattern="^(ACTIVE|INACTIVE)$"),
+    employee_status: str | None = Query(
+        default=None,
+        alias="status",
+        pattern="^(ACTIVE|INACTIVE)$",
+    ),
+    role: str | None = Query(
+        default=None,
+        pattern="^(EMPLOYEE|HR|ADMIN)$",
+    ),
+    attendance: str | None = Query(
+        default=None,
+        pattern="^(PRESENT|ABSENT|HALF_DAY)$",
+    ),
+    min_rating: int | None = Query(default=None, ge=1, le=5),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("HR", "ADMIN")),
 ):
     query = db.query(Employee)
 
-    if search:
+    if search and search.strip():
         term = f"%{search.strip()}%"
         query = query.filter(
             Employee.full_name.ilike(term)
             | Employee.designation.ilike(term)
             | Employee.department.ilike(term)
         )
-    if department:
+
+    if department and department.strip():
         query = query.filter(Employee.department.ilike(department.strip()))
+
     if employee_status:
         query = query.filter(Employee.status == employee_status)
 
-    return query.order_by(Employee.id.desc()).all()
+    if role:
+        query = query.join(User, Employee.user_id == User.id)
+        query = query.filter(User.role == role)
+
+    if attendance:
+        latest_attendance = (
+            db.query(
+                Attendance.employee_id,
+                func.max(Attendance.date).label("latest_date"),
+            )
+            .group_by(Attendance.employee_id)
+            .subquery()
+        )
+
+        query = query.join(
+            latest_attendance,
+            Employee.id == latest_attendance.c.employee_id,
+        ).join(
+            Attendance,
+            (Attendance.employee_id == latest_attendance.c.employee_id)
+            & (Attendance.date == latest_attendance.c.latest_date),
+        ).filter(Attendance.status == attendance)
+
+    if min_rating is not None:
+        latest_review = (
+            db.query(
+                PerformanceReview.employee_id,
+                func.max(PerformanceReview.created_at).label("latest_created"),
+            )
+            .group_by(PerformanceReview.employee_id)
+            .subquery()
+        )
+
+        query = query.join(
+            latest_review,
+            Employee.id == latest_review.c.employee_id,
+        ).join(
+            PerformanceReview,
+            (
+                PerformanceReview.employee_id
+                == latest_review.c.employee_id
+            )
+            & (
+                PerformanceReview.created_at
+                == latest_review.c.latest_created
+            ),
+        ).filter(PerformanceReview.rating >= min_rating)
+
+    return query.distinct().order_by(Employee.id.asc()).all()
 
 @router.get("/me", response_model=EmployeeResponse)
 def get_my_employee_profile(

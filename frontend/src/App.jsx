@@ -4,13 +4,18 @@ import "./App.css";
 
 const navigation = [
   { name: "Dashboard", icon: "📊" },
+  { name: "Analytics & Reports", icon: "📊" },
   { name: "My Profile", icon: "👤" },
   { name: "Employees", icon: "👨🏻‍💻" },
   { name: "Attendance", icon: "🗓️" },
+  { name: "Shift Management", icon: "🕒" },
   { name: "Leave Management", icon: "▤" },
+  { name: "Document Management", icon: "📁" },
+  { name: "Performance Management", icon: "⭐" },
   { name: "Payroll", icon: "₹" },
   { name: "Notifications", icon: "🔔" },
   { name: "User Management", icon: "⚙️" },
+  
 ];
 
 const emptyEmployee = {
@@ -42,6 +47,9 @@ function App() {
   const [employees, setEmployees] = useState([]);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [employeeStatus, setEmployeeStatus] = useState("");
+  const [employeeRole, setEmployeeRole] = useState("");
+  const [employeeAttendance, setEmployeeAttendance] = useState("");
+  const [employeeMinRating, setEmployeeMinRating] = useState("");
   const [employeeLoading, setEmployeeLoading] = useState(false);
   const [employeeError, setEmployeeError] = useState("");
   const [employeeMessage, setEmployeeMessage] = useState("");
@@ -88,8 +96,11 @@ const [userForm, setUserForm] = useState({
 
     try {
       const params = new URLSearchParams();
-      if (employeeSearch.trim()) params.set("search", employeeSearch.trim());
-      if (employeeStatus) params.set("status", employeeStatus);
+if (employeeSearch.trim()) params.set("search", employeeSearch.trim());
+if (employeeStatus) params.set("status", employeeStatus);
+if (employeeRole) params.set("role", employeeRole);
+if (employeeAttendance) params.set("attendance", employeeAttendance);
+if (employeeMinRating) params.set("min_rating", employeeMinRating);
 
       const query = params.toString();
       const data = await apiRequest(
@@ -101,7 +112,13 @@ const [userForm, setUserForm] = useState({
     } finally {
       setEmployeeLoading(false);
     }
-  }, [employeeSearch, employeeStatus]);
+  }, [
+  employeeSearch,
+  employeeStatus,
+  employeeRole,
+  employeeAttendance,
+  employeeMinRating,
+]);
   const loadManagedUsers = useCallback(async () => {
   setUserManagementLoading(true);
   setUserManagementError("");
@@ -818,24 +835,53 @@ const allowedNavigation = navigation.filter((item) => {
               {employeeMessage && <div className="employee-success">{employeeMessage}</div>}
               {employeeError && <div className="employee-error">{employeeError}</div>}
 
-              <div className="employee-filters">
-                <input
-                  aria-label="Search employees"
-                  placeholder="Search name, department..."
-                  value={employeeSearch}
-                  onChange={(event) => setEmployeeSearch(event.target.value)}
-                />
-                <select
-                  aria-label="Filter employee status"
-                  value={employeeStatus}
-                  onChange={(event) => setEmployeeStatus(event.target.value)}
-                >
-                  <option value="">All statuses</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                </select>
-                <button className="secondary-button" onClick={loadEmployees}>↻ Refresh</button>
-              </div>
+              
+<div className="employee-filters">
+  <input
+    aria-label="Search employees"
+    placeholder="Search name, department, role..."
+    value={employeeSearch}
+    onChange={(event) => setEmployeeSearch(event.target.value)}
+  />
+
+  <select
+    aria-label="Filter employee status"
+    value={employeeStatus}
+    onChange={(event) => setEmployeeStatus(event.target.value)}
+  >
+    <option value="">All statuses</option>
+    <option value="ACTIVE">Active</option>
+    <option value="INACTIVE">Inactive</option>
+  </select>
+
+  <select
+    aria-label="Filter attendance"
+    value={employeeAttendance}
+    onChange={(event) => setEmployeeAttendance(event.target.value)}
+  >
+    <option value="">All attendance</option>
+    <option value="PRESENT">Present</option>
+    <option value="ABSENT">Absent</option>
+    <option value="HALF_DAY">Half day</option>
+  </select>
+
+  <select
+    aria-label="Filter performance rating"
+    value={employeeMinRating}
+    onChange={(event) => setEmployeeMinRating(event.target.value)}
+  >
+    <option value="">Performance ratings</option>
+    <option value="5">Rating 5 and above</option>
+    <option value="4">Rating 4 and above</option>
+    <option value="3">Rating 3 and above</option>
+    <option value="2">Rating 2 and above</option>
+    <option value="1">Rating 1 and above</option>
+  </select>
+
+  <button className="secondary-button" onClick={loadEmployees}>
+    ↻ Refresh
+  </button>
+</div>
 
               {showEmployeeForm && (
                 <form className="panel employee-form" onSubmit={handleEmployeeSubmit}>
@@ -1026,9 +1072,17 @@ const allowedNavigation = navigation.filter((item) => {
           ) : activePage === "My Profile" ? (
             <ProfilePage user={user} /> 
           ) : activePage === "Attendance" ? (
-            <AttendancePage user={user} />
+           <AttendancePage user={user} />
+          ) : activePage === "Shift Management" ? (
+           <ShiftManagementPage user={user} />
           ) : activePage === "Leave Management" ? (
-            <LeavePage user={user} />
+           <LeavePage user={user} />
+          ) : activePage === "Document Management" ? (
+          <DocumentManagementPage user={user} />
+          ) : activePage === "Performance Management" ? (
+          <PerformanceManagementPage user={user} />
+          ) : activePage === "Analytics & Reports" ? (
+           <AnalyticsReportsPage />
           ) : activePage === "Payroll" ? (
             <PayrollPage user={user} />
           ) : activePage === "Notifications" ? (
@@ -1587,6 +1641,20 @@ function MetricCard({ icon, tone, label, value, note }) {
 }
 
 export default App;
+function getLeaveDates(startDate, endDate) {
+  const dates = [];
+  const current = new Date(`${startDate}T12:00:00`);
+  const end = new Date(`${endDate}T12:00:00`);
+
+  while (current <= end) {
+    dates.push(
+      `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}-${String(current.getDate()).padStart(2, "0")}`
+    );
+    current.setDate(current.getDate() + 1);
+  }
+
+  return dates;
+}
 
 function LeavePage({ user }) {
   const [leaves, setLeaves] = useState([]);
@@ -1599,8 +1667,64 @@ function LeavePage({ user }) {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
   const isHR = ["HR", "ADMIN"].includes(user?.role);
+  const [leaveCalendar, setLeaveCalendar] = useState([]);
+  const [calendarStart, setCalendarStart] = useState("");
+  const [calendarEnd, setCalendarEnd] = useState("");
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+  const monthStart = new Date(
+  calendarMonth.getFullYear(),
+  calendarMonth.getMonth(),
+  1
+);
+
+const monthEnd = new Date(
+  calendarMonth.getFullYear(),
+  calendarMonth.getMonth() + 1,
+  0
+);
+
+const calendarDays = Array.from(
+  { length: monthEnd.getDate() },
+  (_, index) => index + 1
+);
+
+const monthLabel = calendarMonth.toLocaleDateString("en-IN", {
+  month: "long",
+  year: "numeric",
+});
+
+const approvedLeaves = leaveCalendar.filter(
+  (leave) => leave.status === "APPROVED"
+);
+
+const employeesOnLeaveToday = new Set(
+  approvedLeaves
+    .filter((leave) => {
+      const today = new Date().toLocaleDateString("en-CA");
+      return leave.start_date <= today && leave.end_date >= today;
+    })
+    .map((leave) => leave.employee_id)
+).size;
+
+  const loadLeaveCalendar = useCallback(async () => {
+    if (!isHR) return;
+
+    try {
+      const params = new URLSearchParams();
+      if (calendarStart) params.set("start_date", calendarStart);
+      if (calendarEnd) params.set("end_date", calendarEnd);
+
+      const query = params.toString();
+      const data = await apiRequest(
+        `/api/leaves/calendar${query ? `?${query}` : ""}`
+      );
+
+      setLeaveCalendar(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || "Could not load the team leave calendar.");
+    }
+  }, [isHR, calendarStart, calendarEnd]);
 
   const loadLeaves = useCallback(async () => {
     setLoading(true);
@@ -1635,6 +1759,12 @@ useEffect(() => {
   loadLeaves();
   loadLeaveInfo();
 }, [loadLeaves, loadLeaveInfo]);
+
+useEffect(() => {
+  if (isHR) {
+    loadLeaveCalendar();
+  }
+}, [isHR, loadLeaveCalendar]);
 
   async function applyLeave(event) {
     event.preventDefault();
@@ -1679,6 +1809,7 @@ useEffect(() => {
       setMessage(`Leave application ${action === "approve" ? "approved" : "rejected"} successfully.`);
       await loadLeaves();
       await loadLeaveInfo();
+      if (isHR) await loadLeaveCalendar();
     } catch (err) {
       setError(err.message || "Could not update leave application.");
     }
@@ -1686,6 +1817,222 @@ useEffect(() => {
 
   return (
     <div style={{ display: "grid", gap: 24 }}>
+            {isHR && (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Team Leave Calendar</h2>
+              <p>View approved employee leaves by date.</p>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={loadLeaveCalendar}
+            >
+              Refresh Calendar
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 16,
+              marginBottom: 20,
+            }}
+          >
+            <label>
+              From Date
+              <input
+                type="date"
+                value={calendarStart}
+                onChange={(e) => setCalendarStart(e.target.value)}
+                style={leaveInputStyle}
+              />
+            </label>
+
+            <label>
+              To Date
+              <input
+                type="date"
+                value={calendarEnd}
+                min={calendarStart || undefined}
+                onChange={(e) => setCalendarEnd(e.target.value)}
+                style={leaveInputStyle}
+              />
+            </label>
+
+            <div style={{ alignSelf: "end" }}>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={loadLeaveCalendar}
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+
+          <div className="team-availability-summary">
+            <div className="availability-card">
+              <span>Approved Leave Requests</span>
+              <strong>{approvedLeaves.length}</strong>
+            </div>
+            <div className="availability-card">
+              <span>Employees on Leave Today</span>
+              <strong>{employeesOnLeaveToday}</strong>
+            </div>
+            <div className="availability-card">
+              <span>Team Members Listed</span>
+              <strong>
+                {new Set(leaveCalendar.map((leave) => leave.employee_id)).size}
+              </strong>
+            </div>
+          </div>
+
+          <div className="leave-month-calendar">
+            <div className="leave-calendar-header">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() =>
+                  setCalendarMonth(
+                    new Date(
+                      calendarMonth.getFullYear(),
+                      calendarMonth.getMonth() - 1,
+                      1
+                    )
+                  )
+                }
+              >
+                Previous
+              </button>
+
+              <h3>{monthLabel}</h3>
+
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() =>
+                  setCalendarMonth(
+                    new Date(
+                      calendarMonth.getFullYear(),
+                      calendarMonth.getMonth() + 1,
+                      1
+                    )
+                  )
+                }
+              >
+                Next
+              </button>
+            </div>
+
+            <div className="leave-calendar-grid">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                (day) => (
+                  <div className="leave-calendar-weekday" key={day}>
+                    {day}
+                  </div>
+                )
+              )}
+
+              {Array.from({ length: monthStart.getDay() }, (_, index) => (
+                <div
+                  className="leave-calendar-day empty"
+                  key={`empty-${index}`}
+                />
+              ))}
+
+              {calendarDays.map((day) => {
+                const date = `${calendarMonth.getFullYear()}-${String(
+                  calendarMonth.getMonth() + 1
+                ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+                const dayLeaves = approvedLeaves.filter(
+                  (leave) =>
+                    leave.start_date <= date && leave.end_date >= date
+                );
+
+                const uniqueEmployees = new Set(
+                  dayLeaves.map((leave) => leave.employee_id)
+                ).size;
+
+                return (
+                  <div
+                    className={`leave-calendar-day ${
+                      dayLeaves.length ? "has-leave" : ""
+                    }`}
+                    key={date}
+                  >
+                    <strong>{day}</strong>
+
+                    {uniqueEmployees > 0 && (
+                      <span className="calendar-leave-count">
+                        {uniqueEmployees} on leave
+                      </span>
+                    )}
+
+                    {dayLeaves.length > 1 && (
+                      <span className="calendar-conflict">
+                        Overlapping leaves
+                      </span>
+                    )}
+
+                    {dayLeaves.slice(0, 2).map((leave) => (
+                      <span
+                        className="calendar-leave-name"
+                        key={`${date}-${leave.id}`}
+                        title={`${leave.full_name} — ${leave.leave_type}`}
+                      >
+                        {leave.full_name}
+                      </span>
+                    ))}
+
+                    {dayLeaves.length > 2 && (
+                      <small>+{dayLeaves.length - 2} more</small>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {leaveCalendar.length === 0 ? (
+            <p className="table-message">
+              No approved team leaves found for this date range.
+            </p>
+          ) : (
+            <div className="table-scroll">
+              <table className="employee-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th>Leave Type</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaveCalendar.map((leave) => (
+                    <tr key={leave.id}>
+                      <td>{leave.full_name}</td>
+                      <td>{leave.department || "—"}</td>
+                      <td>{leave.leave_type}</td>
+                      <td>{leave.start_date}</td>
+                      <td>{leave.end_date}</td>
+                      <td>
+                        <span className="status-pill">{leave.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
 <section className="panel">
   <div className="panel-heading">
@@ -1926,9 +2273,15 @@ function NotificationsPage() {
     }
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
+  loadNotifications();
+
+  const intervalId = setInterval(() => {
     loadNotifications();
-  }, [loadNotifications]);
+  }, 15000);
+
+  return () => clearInterval(intervalId);
+}, [loadNotifications]);
 
   async function markAsRead(notificationId) {
     setError("");
@@ -2640,6 +2993,1322 @@ function EmployeeDashboard({ user, setActivePage }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+function ShiftManagementPage({ user }) {
+  const [shifts, setShifts] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [schedule, setSchedule] = useState([]);
+  const [name, setName] = useState("");
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("18:00");
+  const [employeeId, setEmployeeId] = useState("");
+  const [shiftId, setShiftId] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const canManage = ["HR", "ADMIN"].includes(
+    String(user?.role || "").toUpperCase().replace("USER.", "").trim()
+  );
+
+  const loadData = useCallback(async () => {
+    setError("");
+    try {
+      const [shiftData, employeeData, scheduleData] = await Promise.all([
+        apiRequest("/api/shifts/"),
+        apiRequest("/api/employees/"),
+        apiRequest("/api/shifts/schedule"),
+      ]);
+
+      setShifts(Array.isArray(shiftData) ? shiftData : []);
+      setEmployees(
+        Array.isArray(employeeData)
+          ? employeeData
+          : employeeData?.employees ?? employeeData?.items ?? []
+      );
+      setSchedule(Array.isArray(scheduleData) ? scheduleData : []);
+    } catch (err) {
+      setError(err.message || "Unable to load shift information.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  async function createShift(event) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+
+    try {
+      await apiRequest("/api/shifts/", {
+        method: "POST",
+        body: JSON.stringify({
+          name: name.trim(),
+          start_time: `${startTime}:00`,
+          end_time: `${endTime}:00`,
+        }),
+      });
+
+      setName("");
+      setMessage("Shift created successfully.");
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Unable to create shift.");
+    }
+  }
+
+  async function assignShift(event) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+
+    try {
+      await apiRequest("/api/shifts/assign", {
+        method: "POST",
+        body: JSON.stringify({
+          employee_id: Number(employeeId),
+          shift_id: Number(shiftId),
+        }),
+      });
+
+      setMessage("Shift assigned successfully.");
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Unable to assign shift.");
+    }
+  }
+
+  return (
+    <div className="attendance-page">
+      <div className="panel">
+        <div className="panel-heading">
+          <div>
+
+            <p>Create shifts, assign employees, and view schedules.</p>
+          </div>
+          <button className="secondary-button" onClick={loadData}>
+            Refresh
+          </button>
+        </div>
+
+        {error && <p className="employee-error" role="alert">{error}</p>}
+        {message && <p className="employee-success" role="status">{message}</p>}
+
+        {loading ? (
+          <p>Loading shift information...</p>
+        ) : (
+          <>
+            {canManage && (
+              <>
+                <h3>Create Shift</h3>
+                <form onSubmit={createShift} className="employee-form">
+                  <label>
+                    Shift name
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Morning Shift"
+                      required
+                      maxLength={50}
+                    />
+                  </label>
+
+                  <label>
+                    Start time
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    End time
+                    <input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      required
+                    />
+                  </label>
+
+                  <button className="primary-button" type="submit">
+                    Create Shift
+                  </button>
+                </form>
+
+                <h3>Assign Shift</h3>
+                <form onSubmit={assignShift} className="employee-form">
+                  <label>
+                    Employee
+                    <select
+                      value={employeeId}
+                      onChange={(e) => setEmployeeId(e.target.value)}
+                      required
+                    >
+                      <option value="">Select employee</option>
+                      {employees.map((employee) => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.full_name} (ID: {employee.id})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    Shift
+                    <select
+                      value={shiftId}
+                      onChange={(e) => setShiftId(e.target.value)}
+                      required
+                    >
+                      <option value="">Select shift</option>
+                      {shifts.map((shift) => (
+                        <option key={shift.id} value={shift.id}>
+                          {shift.name} ({shift.start_time}–{shift.end_time})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <button
+                    className="primary-button"
+                    type="submit"
+                    disabled={!shifts.length || !employees.length}
+                  >
+                    Assign Shift
+                  </button>
+                </form>
+              </>
+            )}
+
+            <h3>Available Shifts</h3>
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Shift</th>
+                    <th>Start</th>
+                    <th>End</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shifts.map((shift) => (
+                    <tr key={shift.id}>
+                      <td>{shift.id}</td>
+                      <td>{shift.name}</td>
+                      <td>{shift.start_time}</td>
+                      <td>{shift.end_time}</td>
+                    </tr>
+                  ))}
+                  {!shifts.length && (
+                    <tr><td colSpan="4">No shifts created yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Employee Shift Schedule</h3>
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th>Designation</th>
+                    <th>Shift</th>
+                    <th>Timing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {schedule.map((item) => (
+                    <tr key={item.employee_id}>
+                      <td>{item.full_name}</td>
+                      <td>{item.department}</td>
+                      <td>{item.designation}</td>
+                      <td>{item.shift_name}</td>
+                      <td>{item.start_time} – {item.end_time}</td>
+                    </tr>
+                  ))}
+                  {!schedule.length && (
+                    <tr><td colSpan="5">No employee shifts assigned yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DocumentManagementPage({ user }) {
+  const [documents, setDocuments] = useState([]);
+  const [title, setTitle] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [file, setFile] = useState(null);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const isHR = ["HR", "ADMIN"].includes(user?.role);
+
+  const loadDocuments = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await apiRequest("/api/documents/");
+      setDocuments(Array.isArray(data) ? data : []);
+      setError("");
+    } catch (err) {
+      setError(err.message || "Could not load documents.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDocuments();
+    if (isHR) {
+      apiRequest("/api/employees/")
+        .then((data) => setEmployees(Array.isArray(data) ? data : []))
+        .catch(() => setEmployees([]));
+    }
+  }, [loadDocuments, isHR]);
+
+  async function uploadDocument(event) {
+    event.preventDefault();
+    setMessage("");
+    setError("");
+
+    if (!file) {
+      setError("Please choose a file to upload.");
+      return;
+    }
+
+    if (isHR && !employeeId) {
+      setError("Please select an employee.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("title", title.trim());
+    formData.append("file", file);
+
+    if (isHR) {
+      formData.append("employee_id", employeeId);
+    }
+
+    setBusy(true);
+    try {
+      await apiRequest("/api/documents/", {
+        method: "POST",
+        body: formData,
+      });
+
+      setMessage("Document uploaded successfully.");
+      setTitle("");
+      setEmployeeId("");
+      setFile(null);
+      event.target.reset();
+      await loadDocuments();
+    } catch (err) {
+      setError(err.message || "Could not upload document.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadDocument(documentId, filename) {
+    setError("");
+    try {
+      const token = localStorage.getItem("worksphere_token");
+      const response = await fetch(
+        `http://localhost:8000/api/documents/${documentId}/download`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Could not download document.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setError(err.message || "Could not download document.");
+    }
+  }
+
+  const filteredDocuments = documents.filter((document) =>
+    `${document.title} ${document.filename} ${document.employee_id || ""}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  const cardStyle = {
+    background: "var(--card-bg, #ffffff)",
+    border: "1px solid var(--border-color, #e5e7eb)",
+    borderRadius: 16,
+    padding: "20px 22px",
+    boxShadow: "0 4px 14px rgba(15, 23, 42, 0.04)",
+    minWidth: 0,
+  };
+
+  const inputStyle = {
+    ...leaveInputStyle,
+    width: "100%",
+    boxSizing: "border-box",
+    borderRadius: 10,
+    minHeight: 44,
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 24, color: "var(--text-color, #172033)" }}>
+      
+      {message && (
+        <div
+          role="status"
+          className="employee-success"
+          style={{ borderRadius: 10, padding: 14 }}
+        >
+          ✓ {message}
+        </div>
+      )}
+      {error && (
+        <div
+          role="alert"
+          className="employee-error"
+          style={{ borderRadius: 10, padding: 14 }}
+        >
+          {error}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 16,
+        }}
+      >
+        <div style={cardStyle}>
+          <div style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>
+            Total Documents
+          </div>
+          <div style={{ fontSize: 30, fontWeight: 750, marginTop: 10 }}>
+            {loading ? "—" : documents.length}
+          </div>
+          <div style={{ fontSize: 12, color: "#64748b", marginTop: 5 }}>
+            Available to your account
+          </div>
+        </div>
+
+
+        <div style={cardStyle}>
+          <div style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>
+            Recent Uploads
+          </div>
+          <div style={{ fontSize: 30, fontWeight: 750, marginTop: 10, color: "#030303" }}>
+            {loading
+              ? "—"
+              : documents.filter((doc) => {
+                  if (!doc.uploaded_at) return false;
+                  const uploaded = new Date(doc.uploaded_at);
+                  const now = new Date();
+                  return uploaded.toDateString() === now.toDateString();
+                }).length}
+          </div>
+          <div style={{ fontSize: 12, color: "#64748b", marginTop: 5 }}>
+            Uploaded today
+          </div>
+        </div>
+      </div>
+
+      <section
+        style={{
+          ...cardStyle,
+          padding: 0,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            padding: "22px 24px",
+            borderBottom: "1px solid var(--border-color, #e5e7eb)",
+            background: "var(--section-header-bg, #f8fafc)",
+          }}
+        >
+          <h2 style={{ fontSize: 19, margin: "0 0 6px", fontWeight: 750 }}>
+            <span style={{ marginRight: 9 }}>↑</span> Upload a Document
+          </h2>
+          <p style={{ margin: 0, fontSize: 13, color: "#64748b", lineHeight: 1.6 }}>
+            {isHR
+              ? "Select an employee and upload their document."
+              : "Upload a document to your personal employee record."}
+          </p>
+        </div>
+
+        <form
+          onSubmit={uploadDocument}
+          style={{
+            padding: 24,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              columnGap: 108,
+  rowGap: 20,
+            alignItems: "end",
+          }}
+        >
+          <label style={{ display: "grid", gap: 8, fontSize: 13, fontWeight: 650 }}>
+            Document Title
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              required
+              maxLength={150}
+              placeholder="e.g. Employment Contract"
+              style={inputStyle}
+            />
+          </label>
+
+          {isHR && (
+            <label style={{ display: "grid", gap: 8, fontSize: 13, fontWeight: 650 }}>
+              Employee
+              <select
+                value={employeeId}
+                onChange={(event) => setEmployeeId(event.target.value)}
+                required
+                style={inputStyle}
+              >
+                <option value="">Select employee</option>
+                {employees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.full_name} (ID: {employee.id})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <label style={{ display: "grid", gap: 8, fontSize: 13, fontWeight: 650 }}>
+            Select File
+            <input
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+              onChange={(event) => setFile(event.target.files?.[0] || null)}
+              required
+              style={{
+                ...inputStyle,
+                padding: 9,
+                fontSize: 12,
+                fontWeight: 400,
+              }}
+            />
+          </label>
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <div
+              style={{
+                background: "var(--section-header-bg, #f8fafc)",
+                borderRadius: 10,
+                padding: "12px 14px",
+                fontSize: 12,
+                color: "#64748b",
+                marginBottom: 16,
+                lineHeight: 1.7,
+              }}
+            >
+              <strong style={{ color: "#475569" }}>Supported formats:</strong>{" "}
+              PDF, PNG, JPG, DOC, DOCX · <strong>Maximum size:</strong> 10 MB
+              {file && (
+                <div style={{ color: "#047857", marginTop: 4 }}>
+                  Selected: {file.name} · {(file.size / (1024 * 1024)).toFixed(2)} MB
+                </div>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={busy}
+              style={{
+                minHeight: 44,
+                borderRadius: 10,
+                padding: "12px 22px",
+                fontWeight: 700,
+              }}
+            >
+              {busy ? "Uploading..." : "↑  Upload Document"}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section
+        style={{
+          ...cardStyle,
+          padding: 0,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            padding: "22px 24px",
+            borderBottom: "1px solid var(--border-color, #e5e7eb)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 16,
+          }}
+        >
+          <div>
+            <h2 style={{ fontSize: 19, margin: "0 0 6px", fontWeight: 750 }}>
+              {isHR ? "Employee Documents" : "My Documents"}
+            </h2>
+            <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
+              {filteredDocuments.length} document{filteredDocuments.length === 1 ? "" : "s"} found
+            </p>
+          </div>
+
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search documents..."
+            aria-label="Search documents"
+            style={{
+              ...inputStyle,
+              maxWidth: 300,
+              background: "var(--input-bg, #ffffff)",
+            }}
+          />
+        </div>
+
+        {loading ? (
+          <div style={{ padding: 36, textAlign: "center", color: "#64748b" }}>
+            Loading your documents...
+          </div>
+        ) : filteredDocuments.length === 0 ? (
+          <div style={{ padding: "45px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 42, marginBottom: 12 }}>📂</div>
+            <h3 style={{ margin: "0 0 8px", fontSize: 17 }}>
+              {documents.length === 0 ? "No documents yet" : "No matching documents"}
+            </h3>
+            <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>
+              {documents.length === 0
+                ? "Upload your first document using the form above."
+                : "Try a different search term."}
+            </p>
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table className="employee-table">
+              <thead>
+                <tr>
+                  {isHR && <th>Employee ID</th>}
+                  <th>Document</th>
+                  <th>File Name</th>
+                  <th>Uploaded At</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDocuments.map((document) => {
+                  const extension = document.filename.split(".").pop().toUpperCase();
+                  const fileColor =
+                    extension === "PDF"
+                      ? "#dc2626"
+                      : ["PNG", "JPG", "JPEG"].includes(extension)
+                        ? "#0369a1"
+                        : "#6d28d9";
+
+                  return (
+                    <tr key={document.id}>
+                      {isHR && <td>#{document.employee_id}</td>}
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span
+                            style={{
+                              width: 38,
+                              height: 42,
+                              flexShrink: 0,
+                              borderRadius: 8,
+                              background: `${fileColor}12`,
+                              color: fileColor,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 10,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {extension.slice(0, 4)}
+                          </span>
+                          <div>
+                            <div style={{ fontWeight: 650, marginBottom: 4 }}>
+                              {document.title}
+                            </div>
+                            <div style={{ fontSize: 11, color: "#64748b" }}>
+                              Document #{document.id}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ fontSize: 12, overflowWrap: "anywhere" }}>
+                        {document.filename}
+                      </td>
+                      <td style={{ fontSize: 12, color: "#64748b", whiteSpace: "nowrap" }}>
+                        {document.uploaded_at
+                          ? new Date(document.uploaded_at).toLocaleString()
+                          : "—"}
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => downloadDocument(document.id, document.filename)}
+                          style={{
+                            borderRadius: 8,
+                            padding: "9px 13px",
+                            fontWeight: 650,
+                              background: "#08a453",
+                            color: "#ffffff",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          ↓ Download
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <p style={{ fontSize: 12, color: "#64748b", textAlign: "center", margin: 0 }}>
+        🔒 Documents are displayed according to your account permissions.
+      </p>
+    </div>
+  );
+}
+
+function PerformanceManagementPage({ user }) {
+  const isManager = ["HR", "ADMIN"].includes(user?.role);
+
+  const [employees, setEmployees] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [form, setForm] = useState({
+    employee_id: "",
+    review_period: "",
+    rating: "5",
+    feedback: "",
+    goals: "",
+  });
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const reviewData = await apiRequest("/api/performance/");
+      setReviews(Array.isArray(reviewData) ? reviewData : []);
+
+      if (isManager) {
+        const employeeData = await apiRequest("/api/employees/");
+        setEmployees(
+          Array.isArray(employeeData)
+            ? employeeData
+            : employeeData?.employees || []
+        );
+      }
+    } catch (err) {
+      setError(err.message || "Unable to load performance reviews.");
+    } finally {
+      setLoading(false);
+    }
+  }, [isManager]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    setSaving(true);
+
+    try {
+      await apiRequest("/api/performance/", {
+        method: "POST",
+        body: JSON.stringify({
+          ...form,
+          employee_id: Number(form.employee_id),
+          rating: Number(form.rating),
+        }),
+      });
+
+      setSuccess("Performance review created successfully!");
+      setForm({
+        employee_id: "",
+        review_period: "",
+        rating: "5",
+        feedback: "",
+        goals: "",
+      });
+
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Unable to save the review.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const averageRating = reviews.length
+    ? (
+        reviews.reduce((total, review) => total + review.rating, 0) /
+        reviews.length
+      ).toFixed(1)
+    : "—";
+
+  return (
+    <div className="performance-page">
+      <div className="performance-stats">
+        <div className="performance-stat-card">
+          <span className="performance-stat-icon">📋</span>
+          <div>
+            <span>Total Reviews</span>
+            <strong>{reviews.length}</strong>
+          </div>
+        </div>
+        <div className="performance-stat-card">
+          <span className="performance-stat-icon">⭐</span>
+          <div>
+            <span>Average Rating</span>
+            <strong>{averageRating}<small>/ 5</small></strong>
+          </div>
+        </div>
+        <div className="performance-stat-card">
+          <span className="performance-stat-icon">🎯</span>
+          <div>
+            <span>Growth Focus</span>
+            <strong>Goals</strong>
+          </div>
+        </div>
+      </div>
+
+      {isManager && (
+        <section className="performance-panel">
+          <div className="performance-panel-heading">
+            <div>
+              <span className="performance-section-label">REVIEW WORKSPACE</span>
+              <h3>Create Performance Review</h3>
+              <p>Record a review and agree on the next development goals.</p>
+            </div>
+            <span className="performance-heading-icon">✎</span>
+          </div>
+
+          <form onSubmit={handleSubmit} className="performance-form">
+            <div className="performance-form-grid">
+              <label>
+                Employee
+                <select
+                  required
+                  value={form.employee_id}
+                  onChange={(e) =>
+                    setForm({ ...form, employee_id: e.target.value })
+                  }
+                >
+                  <option value="">Select employee</option>
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.full_name || employee.name || `Employee #${employee.id}`}
+                      {employee.designation ? ` — ${employee.designation}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Review Period
+                <input
+                  required
+                  maxLength={100}
+                  placeholder="e.g. Q4 2026"
+                  value={form.review_period}
+                  onChange={(e) =>
+                    setForm({ ...form, review_period: e.target.value })
+                  }
+                />
+              </label>
+
+              <label>
+                Performance Rating
+                <select
+                  value={form.rating}
+                  onChange={(e) =>
+                    setForm({ ...form, rating: e.target.value })
+                  }
+                >
+                  <option value="5">5 — Outstanding</option>
+                  <option value="4">4 — Exceeds expectations</option>
+                  <option value="3">3 — Meets expectations</option>
+                  <option value="2">2 — Needs improvement</option>
+                  <option value="1">1 — Unsatisfactory</option>
+                </select>
+              </label>
+
+              <label className="performance-full-width">
+                Feedback
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Describe achievements, strengths, and areas to improve..."
+                  value={form.feedback}
+                  onChange={(e) =>
+                    setForm({ ...form, feedback: e.target.value })
+                  }
+                />
+              </label>
+
+              <label className="performance-full-width">
+                Development Goals
+                <textarea
+                  rows={3}
+                  placeholder="Outline objectives and skills to develop..."
+                  value={form.goals}
+                  onChange={(e) =>
+                    setForm({ ...form, goals: e.target.value })
+                  }
+                />
+              </label>
+            </div>
+
+            {error && <div className="performance-message error">{error}</div>}
+            {success && (
+              <div className="performance-message success">{success}</div>
+            )}
+
+            <div className="performance-form-footer">
+              <span>All reviews are saved to the HRMS.</span>
+              <button type="submit" disabled={saving}>
+                {saving ? "Saving..." : "＋ Create Review"}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      <section className="performance-panel">
+        <div className="performance-panel-heading">
+          <div>
+            <span className="performance-section-label">REVIEW RECORDS</span>
+            <h3>{isManager ? "All Performance Reviews" : "My Performance Reviews"}</h3>
+            <p>
+              {isManager
+                ? "Review employee feedback and development plans."
+                : "Track your feedback, ratings, and development goals."}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="performance-refresh"
+            onClick={loadData}
+            disabled={loading}
+          >
+            ↻ Refresh
+          </button>
+        </div>
+
+        {!isManager && error && (
+          <div className="performance-message error">{error}</div>
+        )}
+
+        {loading ? (
+          <div className="performance-empty">Loading performance reviews...</div>
+        ) : reviews.length === 0 ? (
+          <div className="performance-empty">
+            <span>📊</span>
+            <h4>No performance reviews yet</h4>
+            <p>Reviews will appear here once they have been created.</p>
+          </div>
+        ) : (
+          <div className="performance-table-wrap">
+            <table className="performance-table">
+              <thead>
+                <tr>
+                  {isManager && <th>Employee ID</th>}
+                  <th>Review Period</th>
+                  <th>Rating</th>
+                  <th>Feedback</th>
+                  <th>Development Goals</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviews.map((review) => (
+                  <tr key={review.id}>
+                    {isManager && (
+                      <td>
+                        <span className="performance-employee-id">
+                          #{review.employee_id}
+                        </span>
+                      </td>
+                    )}
+                    <td>
+                      <strong>{review.review_period}</strong>
+                    </td>
+                    <td>
+                      <span className="performance-rating">
+                        {"★".repeat(review.rating)}
+                        <span>{"★".repeat(5 - review.rating)}</span>
+                        <small>{review.rating}/5</small>
+                      </span>
+                    </td>
+                    <td className="performance-feedback">
+                      {review.feedback}
+                    </td>
+                    <td className="performance-feedback">
+                      {review.goals || "—"}
+                    </td>
+                    <td>
+                      {review.created_at
+                        ? new Date(review.created_at).toLocaleDateString()
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function AnalyticsReportsPage() {
+  const [analytics, setAnalytics] = useState(null);
+  const [departments, setDepartments] = useState([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [department, setDepartment] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function loadDepartments() {
+      try {
+        const data = await apiRequest("/api/employees/");
+        const employees = Array.isArray(data)
+          ? data
+          : data.employees || [];
+        setDepartments([
+          ...new Set(employees.map((employee) => employee.department).filter(Boolean)),
+        ]);
+      } catch (err) {
+        console.error("Could not load departments:", err);
+      }
+    }
+
+    loadDepartments();
+  }, []);
+  async function loadAnalyticsWithFilters(start, end, dept) {
+  setLoading(true);
+  setError("");
+
+  try {
+    const params = new URLSearchParams();
+    if (start) params.set("start_date", start);
+    if (end) params.set("end_date", end);
+    if (dept) params.set("department", dept);
+
+    const query = params.toString();
+    const data = await apiRequest(
+      `/api/dashboard/analytics${query ? `?${query}` : ""}`
+    );
+    setAnalytics(data);
+  } catch (err) {
+    setError(err.message || "Failed to load analytics.");
+  } finally {
+    setLoading(false);
+  }
+}
+
+  async function loadAnalytics(event) {
+    if (event) event.preventDefault();
+
+    if (startDate && endDate && startDate > endDate) {
+      setError("Start date cannot be later than end date.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.set("start_date", startDate);
+      if (endDate) params.set("end_date", endDate);
+      if (department) params.set("department", department);
+
+      const query = params.toString();
+      const data = await apiRequest(
+        `/api/dashboard/analytics${query ? `?${query}` : ""}`
+      );
+      setAnalytics(data);
+    } catch (err) {
+      setError(err.message || "Failed to load analytics.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
+
+  if (error && !analytics) {
+    return <div className="panel error-message">{error}</div>;
+  }
+
+const departmentData = analytics?.department_wise_employees || [];
+const attendanceStatuses = analytics?.attendance_trends || [];
+const attendanceData = ["PRESENT", "ABSENT", "HALF_DAY"].map((status) => ({
+  status,
+  count: attendanceStatuses.find((item) => item.status === status)?.count || 0,
+}));
+
+  const leaveStatuses = analytics?.leave_trends || [];
+  const leaveData = ["PENDING", "APPROVED", "REJECTED"].map((status) => ({
+  status,
+  count: leaveStatuses.find((item) => item.status === status)?.count || 0,
+}));
+  const performance = analytics?.performance_insights || {
+    total_reviews: 0,
+    average_rating: 0,
+  };
+
+  const totalEmployees = departmentData.reduce(
+    (sum, item) => sum + item.employee_count, 0
+  );
+  const totalAttendance = attendanceData.reduce(
+    (sum, item) => sum + item.count, 0
+  );
+  const totalLeaves = leaveData.reduce(
+    (sum, item) => sum + item.count, 0
+  );
+
+const renderBar = (label, count, maxCount, color = "#6366f1") => (
+  <div className="chart-bar-row" key={label}>
+    <span className="chart-bar-label">{label}</span>
+    <div className="chart-bar-track">
+      <div
+        className="chart-bar-fill"
+        style={{
+          width: `${maxCount ? (count / maxCount) * 100 : 0}%`,
+          backgroundColor: color,
+        }}
+      />
+    </div>
+    <strong className="chart-bar-count">{count}</strong>
+  </div>
+);
+
+  return (
+    <div className="analytics-page">
+      <div className="panel-heading">
+        <div>
+        </div>
+      </div>
+
+      <form className="panel analytics-filters" onSubmit={loadAnalytics}>
+        <label>
+          Start date
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </label>
+
+        <label>
+          End date
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </label>
+
+        <label>
+          Department
+          <select
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+          >
+            <option value="">All departments</option>
+            {departments.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </label>
+
+        <button className="primary-button" type="submit" disabled={loading}>
+          {loading ? "Loading..." : "Apply Filters"}
+        </button>
+
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => {
+           setStartDate("");
+           setEndDate("");
+           setDepartment("");
+          loadAnalyticsWithFilters("", "", "");
+         }}
+        >
+          Reset
+        </button>
+      </form>
+
+      {error && <div className="error-message">{error}</div>}
+
+      {loading && !analytics ? (
+        <div className="panel">Loading analytics...</div>
+      ) : (
+        <>
+          <div className="analytics-stats">
+            <div className="analytics-stat-card">
+              <span>Employees in Report</span>
+              <strong>{totalEmployees}</strong>
+            </div>
+            <div className="analytics-stat-card">
+              <span>Attendance Records</span>
+              <strong>{totalAttendance}</strong>
+            </div>
+            <div className="analytics-stat-card">
+              <span>Leave Records</span>
+              <strong>{totalLeaves}</strong>
+            </div>
+            <div className="analytics-stat-card">
+              <span>Performance Reviews</span>
+              <strong>{performance.total_reviews}</strong>
+            </div>
+            <div className="analytics-stat-card">
+              <span>Average Rating</span>
+              <strong>
+                {Number(performance.average_rating || 0).toFixed(1)} / 5
+              </strong>
+            </div>
+          </div>
+
+
+          <div className="analytics-grid">
+  <section className="panel">
+    <h3>Department-wise Employees</h3>
+    {departmentData.length ? (
+      departmentData.map((item) =>
+renderBar(
+  item.department,
+  item.employee_count,
+  Math.max(...departmentData.map((d) => d.employee_count), 1),
+  "#6366f1"
+)
+      )
+    ) : (
+      <p>No employee data for these filters.</p>
+    )}
+  </section>
+
+  <section className="panel">
+    <h3>Attendance Trends</h3>
+    {attendanceData.length ? (
+      attendanceData.map((item) =>
+        
+renderBar(
+  item.status.replaceAll("_", " "),
+  item.count,
+  Math.max(...attendanceData.map((d) => d.count), 1),
+  item.status === "PRESENT"
+    ? "#10b981"
+    : item.status === "ABSENT"
+      ? "#ef4444"
+      : "#f59e0b"
+)
+      )
+    ) : (
+      <p>No attendance data for these filters.</p>
+    )}
+  </section>
+
+  <section className="panel">
+    <h3>Leave Trends</h3>
+    {leaveData.length ? (
+      leaveData.map((item) =>
+
+renderBar(
+  item.status.replaceAll("_", " "),
+  item.count,
+  Math.max(...leaveData.map((d) => d.count), 1),
+  item.status === "APPROVED"
+    ? "#10b981"
+    : item.status === "REJECTED"
+      ? "#ef4444"
+      : "#8b5cf6"
+)
+
+      )
+    ) : (
+      <p>No leave data for these filters.</p>
+    )}
+  </section>
+
+  <section className="panel">
+    <h3>Performance Insights</h3>
+    <div className="analytics-row">
+      <span>Total reviews</span>
+      <strong>{performance.total_reviews}</strong>
+    </div>
+    <div className="analytics-row">
+      <span>Average rating</span>
+      <strong>
+        {Number(performance.average_rating || 0).toFixed(1)} / 5
+      </strong>
+    </div>
+  </section>
+
+          </div>
+        </>
+      )}
     </div>
   );
 }

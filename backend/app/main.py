@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
 from zoneinfo import ZoneInfo
-
+from datetime import datetime, timedelta
+from app.models.shift import Shift, EmployeeShift
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
-from app.routers.leave_policy import router as leave_policy_router
 from app.database import Base, engine, SessionLocal
 from fastapi.middleware.cors import CORSMiddleware
 from app.models import (
@@ -21,10 +21,14 @@ from app.routers.auth import router as auth_router
 from app.routers.employee import router as employee_router
 from app.routers.attendance import router as attendance_router
 from app.routers.leave import router as leave_router
+from app.routers.leave_policy import router as leave_policy_router
 from app.routers.payroll import router as payroll_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.notification import router as notification_router
 from app.routers.admin import router as admin_router
+from app.routers.shifts import router as shifts_router
+from app.routers.documents import router as documents_router
+from app.routers.performance import router as performance_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -81,8 +85,10 @@ def initialize_leave_policies():
 
 def mark_absent_employees():
     db = SessionLocal()
+
     try:
-        today = datetime.now(IST).date()
+        now = datetime.now(IST)
+        today = now.date()
 
         employees = db.query(Employee).filter(
             Employee.status == "ACTIVE"
@@ -107,6 +113,49 @@ def mark_absent_employees():
             if approved_leave:
                 continue
 
+            assignment = db.query(EmployeeShift).filter(
+                EmployeeShift.employee_id == employee.id
+            ).first()
+
+            if assignment:
+                shift = db.query(Shift).filter(
+                    Shift.id == assignment.shift_id
+                ).first()
+
+                if shift:
+                    shift_end = shift.end_time
+
+                    # Handle overnight shifts, such as 10 PM to 6 AM.
+                    if shift.end_time <= shift.start_time:
+                        shift_end_date = datetime.combine(
+                            today + timedelta(days=1),
+                            shift_end,
+                            tzinfo=IST,
+                        )
+                    else:
+                        shift_end_date = datetime.combine(
+                            today,
+                            shift_end,
+                            tzinfo=IST,
+                        )
+
+                    # Allow a 30-minute grace period after shift end.
+                    if now < shift_end_date + timedelta(minutes=30):
+                        continue
+                else:
+                    # Avoid marking absent if the assignment is invalid.
+                    continue
+            else:
+                # Default shift ends at 6 PM.
+                default_end = datetime.combine(
+                    today,
+                    datetime.strptime("18:00", "%H:%M").time(),
+                    tzinfo=IST,
+                )
+
+                if now < default_end + timedelta(minutes=30):
+                    continue
+
             db.add(
                 Attendance(
                     employee_id=employee.id,
@@ -118,12 +167,13 @@ def mark_absent_employees():
             )
 
         db.commit()
+
     except Exception:
         db.rollback()
         raise
+
     finally:
         db.close()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -169,6 +219,9 @@ app.include_router(dashboard_router)
 app.include_router(notification_router)
 app.include_router(leave_policy_router)
 app.include_router(admin_router)
+app.include_router(shifts_router)
+app.include_router(documents_router)
+app.include_router(performance_router)
 
 @app.get("/")
 def root():

@@ -12,31 +12,53 @@ A Human Resource Management System built with **React, FastAPI, SQLAlchemy, and 
 ### 2. Employee Management
 - Employee profile and information management
 - Department, designation, joining date, and employment status
+- Employee search and advanced filtering by status, role, attendance, and performance rating
 
 ### 3. Attendance Management
 - Employee check-in and check-out
-- Attendance history
-- Working hours and attendance status
+- Attendance history and working-hours calculation
+- Attendance status tracking
+- Late attendance alerts
+- Overtime tracking
 
-### 4. Leave Management
+### 4. Shift Management
+- Employee shift management
+- Shift scheduling and shift information
+
+### 5. Leave Management
 - Submit leave applications
 - View leave history and request status
 - HR/Admin leave approval and rejection
+- Leave calendar and team availability view
 
-### 5. Payroll Management
+### 6. Document Management
+- Upload and manage employee documents
+- Select employees for document assignment
+- Search and view available documents
+- Employee-specific document access
+
+### 7. Performance Management
+- Employee performance reviews
+- Performance ratings and feedback
+- Review history and performance tracking
+
+### 8. Payroll Management
 - Generate and view payroll records
 - Salary, deductions, bonuses, and net pay
 
-### 6. Dashboard & Analytics
+### 9. Dashboard & Analytics
 - Employee statistics
 - Attendance summaries
 - Leave statistics
 - Payroll overview
+- Advanced analytics and reports
 
-### 7. Notifications
+### 10. Notifications
 - View notifications and HR activity updates
+- Late attendance notifications
+- Refresh notifications and manage read status
 
-### 8. Admin User Management
+### 11. Admin User Management
 - View and manage user accounts
 - Activate or deactivate user accounts
 - Delete user accounts, subject to application permissions
@@ -73,9 +95,12 @@ WorkSphere/
 │   └── index.html
 ├── Phase 1 Screenshots/
 ├── Phase 2 Screenshots/
+├── Phase 3 Screenshots/
 ├── .gitignore
 └── README.md
 ```
+
+*The structure above highlights the main project files and screenshot folders. Additional files may exist in the actual project.*
 
 ## Getting Started
 
@@ -94,7 +119,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Create `backend/.env` using the variables in `backend/.env.example`. Replace the placeholder `SECRET_KEY` with a strong, private value. Never upload your real `.env` file.
+Create `backend/.env` using the variables in `backend/.env.example`. Replace placeholder secrets with strong, private values. Never commit your real `.env` file.
 
 Start the backend:
 
@@ -119,7 +144,13 @@ Open the local URL shown by Vite, usually http://localhost:5173.
 
 ## Screenshots
 
-Refer to the `Phase 1 Screenshots/` and `Phase 2 Screenshots/` folders for application screenshots and development evidence.
+The project includes screenshots and development evidence for the following phases:
+
+- **Phase 1:** Core HRMS functionality, including authentication, employee management, attendance, and other core features.
+- **Phase 2:** Refer to the Phase 2 Screenshots folder for the relevant implementation evidence.
+- **Phase 3 :** Shift management, leave calendar, document management, performance reviews, analytics and reports, late attendance alerts, and employee advanced filters.
+
+Screenshots are stored in the corresponding phase folders.
 
 ## Security
 
@@ -127,4 +158,8 @@ Refer to the `Phase 1 Screenshots/` and `Phase 2 Screenshots/` folders for appli
 - Do not commit `.env` files.
 - Use `.env.example` to document required environment variables without exposing real credentials.
 - Exclude local databases, virtual environments, and installed frontend dependencies from version control.
+- Enforce role-based access and appropriate authorization checks for protected operations.
 
+## Project Status
+
+WorkSphere HRMS is being developed in phases, with features added incrementally. Refer to the corresponding screenshot folders and API documentation to review the implemented functionality.

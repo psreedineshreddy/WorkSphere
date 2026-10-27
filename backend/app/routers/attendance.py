@@ -8,6 +8,7 @@ from app.models.attendance import Attendance
 from app.models.employee import Employee
 from app.models.notification import Notification
 from app.models.user import User
+from app.models.shift import EmployeeShift, Shift
 from app.routers.auth import get_current_user, require_roles
 from app.schemas.attendance import AttendanceHistoryResponse, AttendanceResponse
 
@@ -28,6 +29,17 @@ def get_employee_for_user(db: Session, user: User) -> Employee:
         raise HTTPException(status_code=404, detail="Employee profile not found")
     return employee
 
+def get_employee_shift(db: Session, employee_id: int):
+    assignment = (
+        db.query(EmployeeShift)
+        .filter(EmployeeShift.employee_id == employee_id)
+        .first()
+    )
+
+    if not assignment:
+        return None
+
+    return db.query(Shift).filter(Shift.id == assignment.shift_id).first()
 
 def check_access(employee_id: int, user: User, db: Session):
     employee = db.query(Employee).filter(Employee.id == employee_id).first()
@@ -47,7 +59,6 @@ def as_aware(value: datetime) -> datetime:
 def hours_between(start: datetime, end: datetime) -> float:
     return max(0, (as_aware(end) - as_aware(start)).total_seconds() / 3600)
 
-
 @router.post("/check-in", response_model=AttendanceResponse)
 def check_in(
     db: Session = Depends(get_db),
@@ -57,10 +68,14 @@ def check_in(
     now = local_now()
     today = now.date()
 
-    record = db.query(Attendance).filter(
-        Attendance.employee_id == employee.id,
-        Attendance.date == today,
-    ).first()
+    record = (
+        db.query(Attendance)
+        .filter(
+            Attendance.employee_id == employee.id,
+            Attendance.date == today,
+        )
+        .first()
+    )
 
     if record and record.check_in:
         raise HTTPException(status_code=409, detail="Already checked in today")
@@ -69,6 +84,7 @@ def check_in(
         record = Attendance(employee_id=employee.id, date=today)
 
     record.check_in = now
+
     shift_start = now.replace(
         hour=SHIFT_START_HOUR, minute=0, second=0, microsecond=0
     )
@@ -76,10 +92,24 @@ def check_in(
     record.status = "PRESENT"
 
     db.add(record)
+
+    if record.is_late:
+        db.add(
+            Notification(
+                user_id=current_user.id,
+                title="Late Attendance Alert",
+                message=(
+                    f"Your check-in was recorded at "
+                    f"{now.strftime('%I:%M %p')} IST, after the "
+                    f"{SHIFT_START_HOUR}:00 AM shift start."
+                ),
+                notification_type="ATTENDANCE",
+            )
+        )
+
     db.commit()
     db.refresh(record)
     return record
-
 
 @router.post("/check-out", response_model=AttendanceResponse)
 def check_out(
