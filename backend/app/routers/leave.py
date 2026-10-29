@@ -11,6 +11,7 @@ from app.models.notification import Notification
 from app.models.leave_balance import LeaveBalance
 from app.routers.auth import get_current_user, require_roles
 from app.schemas.leave import LeaveCreate, LeaveResponse
+from app.email_service import send_email
 
 router = APIRouter(prefix="/api/leaves", tags=["Leave Management"])
 
@@ -169,6 +170,18 @@ def approve_leave(
         )
 
     db.commit()
+    if employee:
+        user = db.query(User).filter(User.id == employee.user_id).first()
+        if user and user.email:
+            send_email(
+                to_email=user.email,
+                subject="Leave Approved",
+                body=(
+                    f"Your {leave.leave_type} leave from {leave.start_date} "
+                    f"to {leave.end_date} has been approved. "
+                    f"{days_requested} day(s) deducted from your balance."
+                ),
+            )
     db.refresh(leave)
     return leave
 
@@ -203,8 +216,20 @@ def reject_leave(
         )
 
     db.commit()
+    if employee:
+        user = db.query(User).filter(User.id == employee.user_id).first()
+        if user and user.email:
+            send_email(
+                to_email=user.email,
+                subject="Leave Rejected",
+                body=(
+                    f"Your {leave.leave_type} leave from {leave.start_date} "
+                    f"to {leave.end_date} has been rejected."
+                ),
+            )
     db.refresh(leave)
     return leave
+
 @router.get("/calendar")
 def leave_calendar(
     start_date: date | None = None,

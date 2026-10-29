@@ -30,3 +30,18 @@ class AdminUserResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+class ProfileUpdate(BaseModel):
+    username: str = Field(min_length=3, max_length=50)
+    email: EmailStr
+
+
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class NotificationPreferences(BaseModel):
+    announcement_notifications: bool = True
+    leave_notifications: bool = True
+    payroll_notifications: bool = True
+    attendance_notifications: bool = True

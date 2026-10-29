@@ -1,0 +1,9 @@
+Report Section,Name / Status,Count,Metric
+Employees by Department,Backend Development,1,
+Employees by Department,Engineering,1,
+Attendance,HALF_DAY,1,
+Attendance,PRESENT,5,
+Leave Requests,APPROVED,4,
+Leave Requests,REJECTED,1,
+Performance,Total Reviews,1,
+Performance,Average Rating,,4.0 / 5

@@ -3,6 +3,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from datetime import datetime, timedelta
 from app.models.shift import Shift, EmployeeShift
+from app.models.feedback import Feedback
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
@@ -10,12 +11,17 @@ from app.database import Base, engine, SessionLocal
 from fastapi.middleware.cors import CORSMiddleware
 from app.models import (
     User,
+    Announcement,
     Employee,
     Attendance,
     Leave,
     Payroll,
     LeavePolicy,
     LeaveBalance,
+    LeaveBalance,
+    Onboarding,
+    Resignation,
+    Task,
 )
 from app.routers.auth import router as auth_router
 from app.routers.employee import router as employee_router
@@ -29,7 +35,14 @@ from app.routers.admin import router as admin_router
 from app.routers.shifts import router as shifts_router
 from app.routers.documents import router as documents_router
 from app.routers.performance import router as performance_router
+from app.routers.onboarding import router as onboarding_router
+from app.routers.resignation import router as resignation_router
+from app.routers.announcements import router as announcements_router
+from app.routers.tasks import router as tasks_router
+from app.routers.reports import router as reports_router
+from app.routers.feedback import router as feedback_router
 
+from app.models.notification_preference import NotificationPreference
 Base.metadata.create_all(bind=engine)
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -222,6 +235,12 @@ app.include_router(admin_router)
 app.include_router(shifts_router)
 app.include_router(documents_router)
 app.include_router(performance_router)
+app.include_router(onboarding_router)
+app.include_router(resignation_router)
+app.include_router(announcements_router)
+app.include_router(tasks_router)
+app.include_router(reports_router)
+app.include_router(feedback_router)
 
 @app.get("/")
 def root():

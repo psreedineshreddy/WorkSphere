@@ -3017,3 +3017,1132 @@ button:focus-visible {
     font-size: 16px;
   }
 }
+
+/* Professional Employee Onboarding page */
+.onboarding-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 28px 36px;
+  color: #202642;
+}
+
+.onboarding-page .page-header {
+  margin-bottom: 28px;
+}
+
+.onboarding-page .dashboard-card {
+  margin: 20px 0;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #e7eaf2;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(31, 41, 75, 0.04);
+}
+
+.onboarding-page .dashboard-card h3 {
+  margin: 0 0 16px;
+  color: #242b48;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.onboarding-page progress {
+  height: 10px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 20px;
+  accent-color: #7257e8;
+}
+
+.onboarding-page form.dashboard-card > div {
+  display: grid !important;
+  grid-template-columns: 140px minmax(220px, 1fr) 180px auto;
+  align-items: center;
+  gap: 14px !important;
+}
+
+.onboarding-page input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 13px;
+  color: #303751;
+  background: #fff;
+  border: 1px solid #dfe4ef;
+  border-radius: 9px;
+  font-size: 13px;
+  outline: none;
+}
+
+.onboarding-page input:focus {
+  border-color: #8065ef;
+  box-shadow: 0 0 0 3px rgba(114, 87, 232, 0.12);
+}
+
+.onboarding-page button {
+  min-height: 42px;
+  padding: 0 17px;
+  color: #fff;
+  background: #7257e8;
+  border: 0;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.onboarding-page button:hover {
+  background: #5d43d0;
+  transform: translateY(-1px);
+}
+
+.onboarding-page table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.onboarding-page th {
+  padding: 14px 16px;
+  color: #727c96;
+  background: #f7f8fc;
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.onboarding-page td {
+  padding: 16px;
+  color: #414a63;
+  border-bottom: 1px solid #edf0f6;
+  font-size: 13px;
+}
+
+.onboarding-page tbody tr:hover {
+  background: #fafaff;
+}
+
+.onboarding-page td:nth-child(5) {
+  font-weight: 700;
+}
+
+.onboarding-page td:nth-child(5):has(+ td button) {
+  color: #b7791f;
+}
+
+.onboarding-page td:last-child button {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .onboarding-page {
+    padding: 20px 16px;
+  }
+
+  .onboarding-page form.dashboard-card > div {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .onboarding-page table {
+    min-width: 720px;
+  }
+}
+
+@media (max-width: 520px) {
+  .onboarding-page form.dashboard-card > div {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Resignation & Exit Management */
+.resignation-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 32px;
+}
+
+.resignation-page .page-header {
+  margin-bottom: 0;
+}
+
+.resignation-page .page-header h1 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 750;
+  letter-spacing: -0.5px;
+}
+
+.resignation-page .page-header p {
+  margin-top: 8px;
+  line-height: 1.6;
+  opacity: 0.8;
+}
+
+.resignation-page .dashboard-card {
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+.resignation-page .dashboard-card h3 {
+  margin: 0 0 18px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.resignation-page form.dashboard-card > div {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.resignation-page input {
+  min-width: 180px;
+  max-width: 100%;
+  padding: 11px 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  font: inherit;
+  background: var(--input-bg, #fff);
+  color: var(--text-color, #1e293b);
+}
+
+.resignation-page input:focus {
+  outline: none;
+  border-color: #6478e8;
+  box-shadow: 0 0 0 3px rgba(100, 120, 232, 0.14);
+}
+
+.resignation-page button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 9px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.resignation-page button:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.resignation-page table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 850px;
+}
+
+.resignation-page th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #f1f5f9;
+  color: #334155;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.resignation-page td {
+  padding: 15px 16px;
+  border-bottom: 1px solid #e9edf3;
+  vertical-align: middle;
+  line-height: 1.5;
+}
+
+.resignation-page tbody tr:hover {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.resignation-page td input {
+  min-width: 160px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.resignation-page td button {
+  margin: 2px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .resignation-page .dashboard-card {
+    padding: 16px;
+  }
+
+  .resignation-page form.dashboard-card > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .resignation-page form.dashboard-card input,
+  .resignation-page form.dashboard-card button {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* Professional Resignation Management table */
+.resignation-page .dashboard-card {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--card-bg, #fff);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.resignation-page .dashboard-card h3 {
+  color: #1e293b;
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.resignation-page .dashboard-card > div {
+  max-width: 100%;
+}
+
+.resignation-page table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.resignation-page th {
+  padding: 14px 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11px;
+  letter-spacing: 0.045em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.resignation-page td {
+  padding: 16px 10px;
+  color: #334155;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.resignation-page tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.resignation-page td input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-size: 12px;
+  padding: 9px;
+}
+
+.resignation-page td button {
+  font-size: 12px;
+  padding: 9px 11px;
+  white-space: normal;
+}
+
+@media (max-width: 900px) {
+  .resignation-page .dashboard-card > div {
+    overflow-x: auto;
+  }
+
+  .resignation-page table {
+    min-width: 850px;
+    table-layout: auto;
+  }
+}
+
+/* Announcements — final page-specific layout */
+.announcements-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 28px;
+}
+
+.announcements-page .page-header {
+  margin: 0 !important;
+  padding: 0 0 8px;
+}
+
+.announcements-page .page-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -0.7px;
+  color: #1e2340;
+}
+
+.announcements-page .page-header p {
+  margin: 7px 0 0;
+  font-size: 14px;
+  color: #778198;
+}
+
+.announcements-page .dashboard-card {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 24px;
+  border: 1px solid #e4e8f1;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 22px rgba(26, 35, 70, 0.045);
+}
+
+.announcements-page .dashboard-card h3 {
+  margin: 0 0 18px;
+  color: #252b45;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.announcements-page input,
+.announcements-page textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid #dce2ed;
+  border-radius: 10px;
+  background: #fbfcff;
+  color: #252b45;
+  font: inherit;
+}
+
+.announcements-page input:focus,
+.announcements-page textarea:focus {
+  outline: none;
+  border-color: #7660e8;
+  box-shadow: 0 0 0 3px rgba(118, 96, 232, 0.12);
+}
+
+.announcements-page textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.announcements-page button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: #6952d9;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.announcements-page button:hover {
+  background: #5740c3;
+  transform: translateY(-1px);
+}
+
+.announcements-page article {
+  padding: 22px 24px !important;
+  border: 1px solid #e3e7f0 !important;
+  border-left: 4px solid #7660e8 !important;
+  border-radius: 13px !important;
+  background: linear-gradient(135deg, #fff 0%, #fcfbff 100%) !important;
+  box-shadow: 0 4px 14px rgba(26, 35, 70, 0.035);
+}
+
+.announcements-page article h4 {
+  margin: 0;
+  color: #252b45;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.announcements-page article p {
+  margin: 14px 0;
+  color: #566176;
+  font-size: 14px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.announcements-page article small {
+  color: #7b8498;
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .announcements-page .page-header h1 {
+    font-size: 23px;
+  }
+
+  .announcements-page .dashboard-card {
+    padding: 17px;
+  }
+
+  .announcements-page article {
+    padding: 17px !important;
+  }
+}
+.announcements-page {
+  gap: 6px !important;
+  padding-top: 0 !important;
+}
+
+.announcements-page .page-header {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.announcements-page .page-header + .dashboard-card {
+  margin-top: 0 !important;
+}
+/* Task Management */
+.tasks-page {
+  padding: 24px;
+  color: #1e293b;
+}
+
+.tasks-page h2 {
+  margin-bottom: 8px;
+  font-size: 25px;
+}
+
+.tasks-page > p {
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+.task-form {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 14px 18px;
+  max-width: 850px;
+  padding: 24px;
+  margin: 20px 0 30px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.task-form h3 {
+  grid-column: 1 / -1;
+  margin: 0 0 8px;
+}
+
+.task-form label {
+  align-self: center;
+  font-weight: 600;
+  color: #475569;
+}
+
+.task-form input,
+.task-form select,
+.task-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  font: inherit;
+}
+
+.task-form textarea {
+  min-height: 85px;
+  resize: vertical;
+}
+
+.task-form button,
+.task-card button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 7px;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.task-form button {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.task-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.task-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.task-card {
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  overflow-wrap: anywhere;
+}
+
+.task-card h4 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.task-card p {
+  margin: 9px 0;
+  color: #475569;
+}
+
+.task-card button {
+  margin: 10px 8px 0 0;
+}
+
+.task-card button:last-child {
+  background: #dc2626;
+}
+
+@media (max-width: 600px) {
+  .tasks-page {
+    padding: 14px;
+  }
+
+  .task-form {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .task-form button {
+    grid-column: 1;
+  }
+}
+
+/* Employee Task Management */
+.task-card {
+  background: #ffffff;
+  border: 1px solid #e4e7f0;
+  border-radius: 16px;
+  padding: 26px;
+  margin-bottom: 20px;
+  box-shadow: 0 5px 18px rgba(35, 45, 85, 0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.task-card:hover {
+  box-shadow: 0 10px 26px rgba(35, 45, 85, 0.1);
+  transform: translateY(-2px);
+}
+
+.task-card h4 {
+  margin: 0 0 18px;
+  color: #252943;
+  font-size: 20px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.task-card > p {
+  margin: 0 0 22px;
+  color: #58627b;
+  font-size: 15px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.task-detail-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 15px 0;
+  border-bottom: 1px solid #edf0f6;
+}
+
+.task-detail-row > span,
+.task-meta span {
+  color: #727c96;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.task-detail-row strong {
+  color: #252943;
+  font-size: 15px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.task-detail-row p {
+  margin: 0;
+  color: #58627b;
+  font-size: 15px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.task-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 22px 0;
+}
+
+.task-meta > div {
+  min-width: 0;
+  padding: 15px;
+  background: #f7f8fc;
+  border: 1px solid #edf0f6;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.task-meta strong {
+  color: #252943;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.task-card button {
+  border: none;
+  border-radius: 9px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.task-card button:first-of-type {
+  background: #5b4bdb;
+  color: #ffffff;
+}
+
+.task-card button:first-of-type:hover {
+  background: #4938c5;
+  transform: translateY(-1px);
+}
+
+.task-card button + button {
+  margin-left: 10px;
+  background: #fff0f0;
+  color: #c62828;
+}
+
+.task-card button + button:hover {
+  background: #ffe0e0;
+}
+
+@media (max-width: 700px) {
+  .task-card {
+    padding: 18px;
+  }
+
+  .task-detail-row {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .task-meta {
+    grid-template-columns: 1fr;
+  }
+}
+.tasks-header {
+  margin-bottom: 12px;
+}
+
+.tasks-header p {
+  margin-bottom: 10px;
+}
+
+.task-details-section {
+  margin-top: 8px;
+}
+
+.task-details-section > h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.feedback-page {
+  display: grid;
+  gap: 24px;
+}
+
+.feedback-form-panel,
+.feedback-dashboard-panel {
+  padding: 28px;
+  border-radius: 16px;
+}
+
+.feedback-page .panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.feedback-page .panel-heading h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.feedback-page .panel-heading p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.feedback-icon,
+.feedback-summary-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #eef2ff;
+  font-size: 25px;
+}
+
+.feedback-page .form-grid {
+  gap: 22px;
+}
+
+.feedback-page label {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.feedback-page select,
+.feedback-page textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  background: #fff;
+  color: #1e293b;
+  padding: 13px 14px;
+  font: inherit;
+}
+
+.feedback-page select:focus,
+.feedback-page textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.feedback-page .feedback-textarea {
+  resize: vertical;
+  min-height: 130px;
+  line-height: 1.6;
+}
+
+.feedback-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+
+.feedback-page .primary-button,
+.feedback-page .secondary-button {
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-weight: 600;
+}
+
+.feedback-page .primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.feedback-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.feedback-summary span,
+.feedback-summary strong {
+  display: block;
+}
+
+.feedback-summary span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.feedback-summary strong {
+  margin-top: 5px;
+  font-size: 28px;
+  color: #1e293b;
+}
+
+.feedback-empty {
+  text-align: center;
+  padding: 48px 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.feedback-empty > span {
+  font-size: 34px;
+}
+
+.feedback-empty h3 {
+  margin: 12px 0 6px;
+  color: #1e293b;
+}
+
+.feedback-empty p {
+  margin: 0;
+  color: #64748b;
+}
+
+.feedback-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.feedback-table th {
+  padding: 14px 16px;
+  background: #f8fafc;
+  color: #64748b;
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.feedback-table td {
+  padding: 17px 16px;
+  border-bottom: 1px solid #edf2f7;
+  color: #334155;
+  vertical-align: top;
+}
+
+.feedback-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.feedback-employee-id {
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.feedback-rating-value {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.feedback-rating-value small {
+  color: #64748b;
+}
+
+.feedback-message-cell {
+  min-width: 180px;
+  max-width: 420px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  .feedback-form-panel,
+  .feedback-dashboard-panel {
+    padding: 18px;
+  }
+
+  .feedback-page .panel-heading {
+    align-items: flex-start;
+  }
+
+  .feedback-table th,
+  .feedback-table td {
+    padding: 12px 10px;
+  }
+}
+
+/* WorkSphere Profile & Settings - layout refinement */
+.profile-settings-page {
+  display: grid;
+  gap: 24px;
+  max-width: 100%;
+}
+
+.profile-settings-page > .panel {
+  padding: 26px;
+  border-radius: 14px;
+  border: 1px solid #e6e9f2;
+  box-shadow: 0 4px 16px rgba(32, 38, 70, 0.04);
+}
+
+.profile-settings-page .panel-heading {
+  margin-bottom: 22px;
+}
+
+.profile-settings-page .panel-heading h2,
+.profile-settings-page .panel-heading h3 {
+  margin: 0 0 8px;
+  color: #20243d;
+  font-weight: 700;
+}
+
+.profile-settings-page .panel-heading p {
+  margin: 0;
+  color: #858ba5;
+  line-height: 1.6;
+}
+
+.profile-settings-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 24px;
+  max-width: none;
+}
+
+.profile-settings-form > label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: #454b65;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profile-settings-form input:not([type="checkbox"]) {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  border: 1px solid #dfe3ee;
+  border-radius: 8px;
+  background: #fff;
+  color: #272c45;
+  font: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.profile-settings-form input:not([type="checkbox"]):focus {
+  outline: none;
+  border-color: #7560df;
+  box-shadow: 0 0 0 3px rgba(117, 96, 223, 0.12);
+}
+
+.profile-settings-form > button {
+  justify-self: start;
+  align-self: end;
+  min-height: 42px;
+  padding: 11px 22px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.profile-preferences-list {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profile-settings-form .preference-option {
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 13px 15px;
+  border: 1px solid #e5e7f0;
+  border-radius: 9px;
+  background: #fafaff;
+  color: #454b65;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.profile-settings-form .preference-option:has(input:checked) {
+  border-color: #c7bcff;
+  background: #f7f5ff;
+}
+
+.profile-settings-form .preference-option input[type="checkbox"] {
+  accent-color: #7560df;
+  flex-shrink: 0;
+}
+
+.profile-settings-page .success-message,
+.profile-settings-page .employee-error {
+  padding: 12px 15px;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.profile-settings-page .success-message {
+  background: #effaf3;
+}
+
+.profile-settings-page .employee-error {
+  background: #fff2f2;
+}
+
+.profile-settings-page .summary-row {
+  min-height: 46px;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .profile-settings-page {
+    gap: 16px;
+  }
+
+  .profile-settings-page > .panel {
+    padding: 18px;
+  }
+
+  .profile-settings-form,
+  .profile-preferences-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-settings-form > button {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .profile-settings-page .summary-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

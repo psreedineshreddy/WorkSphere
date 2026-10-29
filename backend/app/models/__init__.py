@@ -9,6 +9,11 @@ from app.models.leave_balance import LeaveBalance
 from app.models.shift import Shift, EmployeeShift
 from app.models.document import Document
 from app.models.performance import PerformanceReview
+from app.models.onboarding import Onboarding
+from app.models.resignation import Resignation
+from app.models.announcement import Announcement
+from app.models.task import Task
+
 __all__ = [
     "User",
     "Employee",
@@ -20,4 +25,9 @@ __all__ = [
     "LeaveBalance",
     "Shift",
     "EmployeeShift",
+    "Document",
+    "PerformanceReview",
+    "Onboarding",
+    "Resignation",
+    "Announcement",
 ]

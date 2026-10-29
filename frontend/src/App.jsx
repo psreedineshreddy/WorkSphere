@@ -8,13 +8,18 @@ const navigation = [
   { name: "My Profile", icon: "👤" },
   { name: "Employees", icon: "👨🏻‍💻" },
   { name: "Attendance", icon: "🗓️" },
-  { name: "Shift Management", icon: "🕒" },
-  { name: "Leave Management", icon: "▤" },
-  { name: "Document Management", icon: "📁" },
+  { name: "Task Management", icon: "📝" },
   { name: "Performance Management", icon: "⭐" },
+  { name: "Employee Feedback", icon: "💬" },
+   { name: "Shift Management", icon: "🕒" },
+  { name: "Leave Management", icon: "▤" },
   { name: "Payroll", icon: "₹" },
   { name: "Notifications", icon: "🔔" },
+  { name: "Announcements", icon: "📢" },
+  { name: "Document Management", icon: "📁" },
   { name: "User Management", icon: "⚙️" },
+  { name: "Onboarding", icon: "✅" },
+  { name: "Resignation Management", icon: "📋" },
   
 ];
 
@@ -582,10 +587,13 @@ const allowedNavigation = navigation.filter((item) => {
     return user.role === "ADMIN";
   }
 
-  if (user.role === "HR") {
-    return item.name !== "User Management";
-  }
+if (user.role === "HR") {
+  return item.name !== "User Management";
+}
 
+if (user.role === "ADMIN") {
+  return true;
+}
   return [
     "Dashboard",
     "My Profile",
@@ -593,6 +601,10 @@ const allowedNavigation = navigation.filter((item) => {
     "Leave Management",
     "Payroll",
     "Notifications",
+    "Announcements",
+    "Resignation Management",
+    "Task Management",
+    "Employee Feedback",
   ].includes(item.name);
 });
 
@@ -1081,6 +1093,16 @@ const allowedNavigation = navigation.filter((item) => {
           <DocumentManagementPage user={user} />
           ) : activePage === "Performance Management" ? (
           <PerformanceManagementPage user={user} />
+          ) : activePage === "Employee Feedback" ? (
+           <FeedbackPage user={user} />
+          ) : activePage === "Onboarding" ? (
+           <OnboardingPage user={user} />
+           ) : activePage === "Resignation Management" ? (
+           <ResignationPage user={user} />
+           ) : activePage === "Announcements" ? (
+          <AnnouncementsPage user={user} />
+          ) : activePage === "Task Management" ? (
+          <TaskManagementPage user={user} />
           ) : activePage === "Analytics & Reports" ? (
            <AnalyticsReportsPage />
           ) : activePage === "Payroll" ? (
@@ -1819,19 +1841,76 @@ useEffect(() => {
     <div style={{ display: "grid", gap: 24 }}>
             {isHR && (
         <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Team Leave Calendar</h2>
-              <p>View approved employee leaves by date.</p>
-            </div>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={loadLeaveCalendar}
-            >
-              Refresh Calendar
-            </button>
-          </div>
+
+<div className="panel-heading">
+  <div>
+    <h2>Team Leave Calendar</h2>
+    <p>View approved employee leaves by date.</p>
+  </div>
+
+  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+    <button
+      type="button"
+      className="secondary-button"
+      onClick={loadLeaveCalendar}
+    >
+      Refresh Calendar
+    </button>
+
+    <button
+      type="button"
+      className="secondary-button"
+      onClick={() => {
+  const approvedLeaves = leaveCalendar.filter(
+    (leave) => leave.status === "APPROVED"
+  );
+
+  if (approvedLeaves.length === 0) {
+    alert("No approved leaves available to export.");
+    return;
+  }
+
+  const events = approvedLeaves.map((leave) => {
+    const start = leave.start_date.replace(/-/g, "");
+    const endDate = new Date(`${leave.end_date}T00:00:00`);
+    endDate.setDate(endDate.getDate() + 1);
+    const end = [
+      endDate.getFullYear(),
+      String(endDate.getMonth() + 1).padStart(2, "0"),
+      String(endDate.getDate()).padStart(2, "0"),
+    ].join("");
+
+    return [
+      "BEGIN:VEVENT",
+      `UID:leave-${leave.id}@worksphere`,
+      `DTSTART;VALUE=DATE:${start}`,
+      `DTEND;VALUE=DATE:${end}`,
+      `SUMMARY:${leave.leave_type} Leave - ${leave.full_name}`,
+      "END:VEVENT",
+    ].join("\r\n");
+  });
+
+  const content = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//WorkSphere HRMS//EN",
+    ...events,
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "worksphere-leave-calendar.ics";
+  link.click();
+  URL.revokeObjectURL(url);
+}}
+    >
+      Export Calendar
+    </button>
+  </div>
+</div>
 
           <div
             style={{
@@ -2860,30 +2939,233 @@ function PayrollPage({ user }) {
     </div>
   );
 }
+
+function OnboardingPage({ user }) {
+  const [tasks, setTasks] = useState([]);
+  const [employeeId, setEmployeeId] = useState("");
+  const [taskName, setTaskName] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const token = localStorage.getItem("worksphere_token");
+  const isHR = ["HR", "ADMIN"].includes(user?.role);
+
+  async function loadTasks() {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/onboarding/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Unable to load onboarding tasks");
+      setTasks(await response.json());
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  async function createTask(e) {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/onboarding/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          employee_id: Number(employeeId),
+          task_name: taskName.trim(),
+          due_date: dueDate || null,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Unable to create task");
+
+      setTaskName("");
+      setDueDate("");
+      setMessage("Onboarding task created successfully.");
+      await loadTasks();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function updateTask(taskId, status) {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/onboarding/${taskId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Unable to update task");
+
+      await loadTasks();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  const completed = tasks.filter((task) => task.status === "COMPLETED").length;
+  const progress = tasks.length
+    ? Math.round((completed / tasks.length) * 100)
+    : 0;
+
+  return (
+    <div className="page-content onboarding-page">
+      <div className="page-header">
+      </div>
+
+      <div className="dashboard-card">
+        <h3>Onboarding Progress</h3>
+        <p>{completed} of {tasks.length} tasks completed ({progress}%)</p>
+        <progress value={progress} max="100" style={{ width: "100%" }} />
+      </div>
+
+      {isHR && (
+        <form className="dashboard-card" onSubmit={createTask}>
+          <h3>Assign Onboarding Task</h3>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <input
+              type="number"
+              min="1"
+              placeholder="Employee ID"
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+              required
+            />
+            <input
+              placeholder="Task name"
+              value={taskName}
+              onChange={(e) => setTaskName(e.target.value)}
+              required
+            />
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+            <button type="submit">Assign Task</button>
+          </div>
+        </form>
+      )}
+
+      {error && <p role="alert" style={{ color: "red" }}>{error}</p>}
+      {message && <p>{message}</p>}
+
+      <div className="dashboard-card">
+        <h3>Onboarding Checklist</h3>
+        {tasks.length === 0 ? (
+          <p>No onboarding tasks found.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Employee ID</th>
+                  <th>Task</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tasks.map((task) => (
+                  <tr key={task.id}>
+                    <td>{task.id}</td>
+                    <td>{task.employee_id}</td>
+                    <td>{task.task_name}</td>
+                    <td>{task.due_date || "—"}</td>
+                    <td>{task.status}</td>
+                    <td>
+                      {task.status === "PENDING" && (
+                        <button
+                          type="button"
+                          onClick={() => updateTask(task.id, "COMPLETED")}
+                        >
+                          Mark Completed
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 function ProfilePage({ user }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
+  const [preferences, setPreferences] = useState({
+    email_notifications: true,
+    announcement_notifications: true,
+    leave_notifications: true,
+    payroll_notifications: true,
+  });
+
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [savingPreferences, setSavingPreferences] = useState(false);
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
     setError("");
+    setMessage("");
 
     try {
       const account = await apiRequest("/api/auth/me");
-let employee = null;
 
-try {
-  employee = await apiRequest("/api/employees/me");
-} catch (err) {
-  if (!err.message?.includes("Employee profile not found")) {
-    throw err;
-  }
-}
+      let employee = null;
+      try {
+        employee = await apiRequest("/api/employees/me");
+      } catch (err) {
+        if (!err.message?.includes("Employee profile not found")) {
+          throw err;
+        }
+      }
 
       setProfile({ ...account, employee });
+      setUsername(account.username || "");
+      setEmail(account.email || "");
+
+      const savedPreferences = await apiRequest(
+        "/api/auth/notification-preferences"
+      );
+      setPreferences(savedPreferences);
     } catch (err) {
-      setError(err.message || "Unable to load profile.");
+      setError(err.message || "Unable to load profile settings.");
     } finally {
       setLoading(false);
     }
@@ -2893,9 +3175,89 @@ try {
     loadProfile();
   }, [loadProfile]);
 
-  if (loading) return <div className="panel">Loading your profile...</div>;
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    setSavingProfile(true);
 
-  if (error) {
+    try {
+      const updated = await apiRequest("/api/auth/me", {
+        method: "PUT",
+        body: JSON.stringify({ username, email }),
+      });
+
+      setProfile((previous) => ({ ...previous, ...updated }));
+      setUsername(updated.username || username);
+      setEmail(updated.email || email);
+      setMessage("Profile updated successfully.");
+    } catch (err) {
+      setError(err.message || "Unable to update profile.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const changePassword = async (event) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+
+    if (newPassword.length < 8) {
+      setError("New password must contain at least 8 characters.");
+      return;
+    }
+
+    setSavingPassword(true);
+
+    try {
+      const result = await apiRequest("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+
+      setMessage(result.message || "Password changed successfully.");
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (err) {
+      setError(err.message || "Unable to change password.");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const savePreferences = async (event) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    setSavingPreferences(true);
+
+    try {
+      const updated = await apiRequest(
+        "/api/auth/notification-preferences",
+        {
+          method: "PUT",
+          body: JSON.stringify(preferences),
+        }
+      );
+
+      setPreferences(updated);
+      setMessage("Notification preferences saved successfully.");
+    } catch (err) {
+      setError(err.message || "Unable to save notification preferences.");
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="panel">Loading profile settings...</div>;
+  }
+
+  if (error && !profile) {
     return (
       <div className="panel">
         <p className="employee-error">{error}</p>
@@ -2906,35 +3268,60 @@ try {
     );
   }
 
-  const employee = profile?.employee;
-  const details = [
-    ["Username", profile?.username],
-    ["Email", profile?.email],
-    ["Role", profile?.role || user?.role],
-    ["Employee ID", employee?.id],
-    ["Full name", employee?.full_name],
-    ["Designation", employee?.designation],
-    ["Department", employee?.department],
-    ["Joining date", employee?.joining_date],
-    ["Employment status", employee?.status],
-    [
-      "Salary",
-      employee?.salary != null
-        ? `₹${Number(employee.salary).toLocaleString("en-IN")}`
-        : null,
-    ],
-  ];
 
-  return (
+const employee = profile?.employee;
+
+const details = [
+  ["Employee ID", employee?.id],
+  ["Full name", employee?.full_name],
+  ["Email", profile?.email],
+  ["Designation", employee?.designation],
+  ["Department", employee?.department],
+  ["Joining date", employee?.joining_date],
+  ["Employment status", employee?.status],
+  [
+    "Salary",
+    employee?.salary != null
+      ? `₹${Number(employee.salary).toLocaleString("en-IN")}`
+      : null,
+  ],
+];
+
+const preferenceLabels = [
+  ["announcement_notifications", "Announcement notifications"],
+  ["leave_notifications", "Leave notifications"],
+  ["payroll_notifications", "Payroll notifications"],
+  ["attendance_notifications", "Attendance notifications"],
+];
+
+return (
+  <div className="profile-settings-page">
+        <div className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Profile & Settings</h2>
+          <p>Manage your account, security, and notification preferences.</p>
+        </div>
+      </div>
+
+      {message && <p className="success-message">{message}</p>}
+      {error && <p className="employee-error">{error}</p>}
+    </div>
+
     <div className="panel dashboard-details">
       <div className="panel-heading">
         <div>
-          <h2>My Profile</h2>
-          <p>Your account and employment information</p>
+          <h3>Employment Information</h3>
+          <p>Your current account and employment details.</p>
         </div>
         <button className="secondary-button" onClick={loadProfile}>
           ↻ Refresh
         </button>
+      </div>
+
+      <div className="summary-row">
+        <span>Role</span>
+        <strong>{profile?.role || user?.role || "—"}</strong>
       </div>
 
       {details
@@ -2948,13 +3335,135 @@ try {
 
       {!employee && (
         <p className="table-message">
-          No employee record is linked to this account yet. Your account details
-          are shown above.
+          No employee record is linked to this account yet.
         </p>
       )}
     </div>
-  );
+
+    <div className="panel">
+      <div className="panel-heading">
+        <div>
+          <h3>Personal Profile</h3>
+          <p>Update your account information.</p>
+        </div>
+      </div>
+
+      <form onSubmit={saveProfile} className="profile-settings-form">
+        <label>
+          Username
+          <input
+            type="text"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            minLength={3}
+            maxLength={50}
+            required
+          />
+        </label>
+
+        <label>
+          Email address
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
+        </label>
+
+        <button
+          type="submit"
+          className="primary-button"
+          disabled={savingProfile}
+        >
+          {savingProfile ? "Saving..." : "Save Profile"}
+        </button>
+      </form>
+    </div>
+
+    <div className="panel">
+      <div className="panel-heading">
+        <div>
+          <h3>Change Password</h3>
+          <p>Choose a new password with at least 8 characters.</p>
+        </div>
+      </div>
+
+      <form onSubmit={changePassword} className="profile-settings-form">
+        <label>
+          Current password
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(event) => setCurrentPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
+        </label>
+
+        <label>
+          New password
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            minLength={8}
+            maxLength={128}
+            autoComplete="new-password"
+            required
+          />
+        </label>
+
+        <button
+          type="submit"
+          className="primary-button"
+          disabled={savingPassword}
+        >
+          {savingPassword ? "Updating..." : "Change Password"}
+        </button>
+      </form>
+    </div>
+
+    <div className="panel">
+      <div className="panel-heading">
+        <div>
+          <h3>Notification Preferences</h3>
+          <p>Choose which types of notifications you prefer.</p>
+        </div>
+      </div>
+
+      <form onSubmit={savePreferences} className="profile-settings-form">
+        <div className="profile-preferences-list">
+          {preferenceLabels.map(([key, label]) => (
+            <label className="preference-option" key={key}>
+              <span>{label}</span>
+              <input
+                type="checkbox"
+                checked={Boolean(preferences[key])}
+                onChange={(event) =>
+                  setPreferences((previous) => ({
+                    ...previous,
+                    [key]: event.target.checked,
+                  }))
+                }
+              />
+            </label>
+          ))}
+        </div>
+
+        <button
+          type="submit"
+          className="primary-button"
+          disabled={savingPreferences}
+        >
+          {savingPreferences ? "Saving..." : "Save Preferences"}
+        </button>
+      </form>
+    </div>
+  </div>
+);
 }
+
 function EmployeeDashboard({ user, setActivePage }) {
   return (
     <div className="employee-dashboard">
@@ -4015,6 +4524,7 @@ function PerformanceManagementPage({ user }) {
   );
 }
 
+
 function AnalyticsReportsPage() {
   const [analytics, setAnalytics] = useState(null);
   const [departments, setDepartments] = useState([]);
@@ -4023,6 +4533,7 @@ function AnalyticsReportsPage() {
   const [department, setDepartment] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState("");
 
   useEffect(() => {
     async function loadDepartments() {
@@ -4031,8 +4542,13 @@ function AnalyticsReportsPage() {
         const employees = Array.isArray(data)
           ? data
           : data.employees || [];
+
         setDepartments([
-          ...new Set(employees.map((employee) => employee.department).filter(Boolean)),
+          ...new Set(
+            employees
+              .map((employee) => employee.department)
+              .filter(Boolean)
+          ),
         ]);
       } catch (err) {
         console.error("Could not load departments:", err);
@@ -4041,27 +4557,29 @@ function AnalyticsReportsPage() {
 
     loadDepartments();
   }, []);
+
   async function loadAnalyticsWithFilters(start, end, dept) {
-  setLoading(true);
-  setError("");
+    setLoading(true);
+    setError("");
 
-  try {
-    const params = new URLSearchParams();
-    if (start) params.set("start_date", start);
-    if (end) params.set("end_date", end);
-    if (dept) params.set("department", dept);
+    try {
+      const params = new URLSearchParams();
+      if (start) params.set("start_date", start);
+      if (end) params.set("end_date", end);
+      if (dept) params.set("department", dept);
 
-    const query = params.toString();
-    const data = await apiRequest(
-      `/api/dashboard/analytics${query ? `?${query}` : ""}`
-    );
-    setAnalytics(data);
-  } catch (err) {
-    setError(err.message || "Failed to load analytics.");
-  } finally {
-    setLoading(false);
+      const query = params.toString();
+      const data = await apiRequest(
+        `/api/dashboard/analytics${query ? `?${query}` : ""}`
+      );
+
+      setAnalytics(data);
+    } catch (err) {
+      setError(err.message || "Failed to load analytics.");
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   async function loadAnalytics(event) {
     if (event) event.preventDefault();
@@ -4071,7 +4589,16 @@ function AnalyticsReportsPage() {
       return;
     }
 
-    setLoading(true);
+    await loadAnalyticsWithFilters(startDate, endDate, department);
+  }
+
+  async function exportReport(format) {
+    if (startDate && endDate && startDate > endDate) {
+      setError("Start date cannot be later than end date.");
+      return;
+    }
+
+    setExporting(format);
     setError("");
 
     try {
@@ -4081,14 +4608,64 @@ function AnalyticsReportsPage() {
       if (department) params.set("department", department);
 
       const query = params.toString();
-      const data = await apiRequest(
-        `/api/dashboard/analytics${query ? `?${query}` : ""}`
-      );
-      setAnalytics(data);
+      const url = `http://127.0.0.1:8000/api/reports/analytics.${format}${
+        query ? `?${query}` : ""
+      }`;
+
+      const token = localStorage.getItem("worksphere_token");
+
+      if (!token) {
+        throw new Error("Please log in again before exporting reports.");
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(
+          `Export failed (${response.status}): ${
+            message || "Check your login and permissions."
+          }`
+        );
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (format === "csv" && !contentType.includes("text/csv")) {
+        throw new Error(
+          "The server returned an unexpected response instead of CSV data."
+        );
+      }
+
+      if (
+        format === "pdf" &&
+        !contentType.includes("application/pdf")
+      ) {
+        throw new Error(
+          "The server returned an unexpected response instead of a PDF."
+        );
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = downloadUrl;
+      link.download = `worksphere-analytics.${format}`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(downloadUrl);
     } catch (err) {
-      setError(err.message || "Failed to load analytics.");
+      setError(err.message || "Failed to export report.");
     } finally {
-      setLoading(false);
+      setExporting("");
     }
   }
 
@@ -4100,53 +4677,68 @@ function AnalyticsReportsPage() {
     return <div className="panel error-message">{error}</div>;
   }
 
-const departmentData = analytics?.department_wise_employees || [];
-const attendanceStatuses = analytics?.attendance_trends || [];
-const attendanceData = ["PRESENT", "ABSENT", "HALF_DAY"].map((status) => ({
-  status,
-  count: attendanceStatuses.find((item) => item.status === status)?.count || 0,
-}));
+  const departmentData = analytics?.department_wise_employees || [];
+  const attendanceStatuses = analytics?.attendance_trends || [];
+
+  const attendanceData = ["PRESENT", "ABSENT", "HALF_DAY"].map(
+    (status) => ({
+      status,
+      count:
+        attendanceStatuses.find((item) => item.status === status)?.count ||
+        0,
+    })
+  );
 
   const leaveStatuses = analytics?.leave_trends || [];
+
   const leaveData = ["PENDING", "APPROVED", "REJECTED"].map((status) => ({
-  status,
-  count: leaveStatuses.find((item) => item.status === status)?.count || 0,
-}));
+    status,
+    count:
+      leaveStatuses.find((item) => item.status === status)?.count || 0,
+  }));
+
   const performance = analytics?.performance_insights || {
     total_reviews: 0,
     average_rating: 0,
   };
 
   const totalEmployees = departmentData.reduce(
-    (sum, item) => sum + item.employee_count, 0
-  );
-  const totalAttendance = attendanceData.reduce(
-    (sum, item) => sum + item.count, 0
-  );
-  const totalLeaves = leaveData.reduce(
-    (sum, item) => sum + item.count, 0
+    (sum, item) => sum + item.employee_count,
+    0
   );
 
-const renderBar = (label, count, maxCount, color = "#6366f1") => (
-  <div className="chart-bar-row" key={label}>
-    <span className="chart-bar-label">{label}</span>
-    <div className="chart-bar-track">
-      <div
-        className="chart-bar-fill"
-        style={{
-          width: `${maxCount ? (count / maxCount) * 100 : 0}%`,
-          backgroundColor: color,
-        }}
-      />
+  const totalAttendance = attendanceData.reduce(
+    (sum, item) => sum + item.count,
+    0
+  );
+
+  const totalLeaves = leaveData.reduce(
+    (sum, item) => sum + item.count,
+    0
+  );
+
+  const renderBar = (label, count, maxCount, color = "#6366f1") => (
+    <div className="chart-bar-row" key={label}>
+      <span className="chart-bar-label">{label}</span>
+      <div className="chart-bar-track">
+        <div
+          className="chart-bar-fill"
+          style={{
+            width: `${maxCount ? (count / maxCount) * 100 : 0}%`,
+            backgroundColor: color,
+          }}
+        />
+      </div>
+      <strong className="chart-bar-count">{count}</strong>
     </div>
-    <strong className="chart-bar-count">{count}</strong>
-  </div>
-);
+  );
 
   return (
     <div className="analytics-page">
       <div className="panel-heading">
         <div>
+          <h2>Analytics & Reports</h2>
+          <p>Review HR metrics and export reports.</p>
         </div>
       </div>
 
@@ -4177,26 +4769,51 @@ const renderBar = (label, count, maxCount, color = "#6366f1") => (
           >
             <option value="">All departments</option>
             {departments.map((name) => (
-              <option key={name} value={name}>{name}</option>
+              <option key={name} value={name}>
+                {name}
+              </option>
             ))}
           </select>
         </label>
 
-        <button className="primary-button" type="submit" disabled={loading}>
+        <button
+          className="primary-button"
+          type="submit"
+          disabled={loading}
+        >
           {loading ? "Loading..." : "Apply Filters"}
         </button>
 
         <button
           className="secondary-button"
           type="button"
+          disabled={loading}
           onClick={() => {
-           setStartDate("");
-           setEndDate("");
-           setDepartment("");
-          loadAnalyticsWithFilters("", "", "");
-         }}
+            setStartDate("");
+            setEndDate("");
+            setDepartment("");
+            loadAnalyticsWithFilters("", "", "");
+          }}
         >
           Reset
+        </button>
+
+        <button
+          className="secondary-button"
+          type="button"
+          disabled={Boolean(exporting)}
+          onClick={() => exportReport("csv")}
+        >
+          {exporting === "csv" ? "Exporting..." : "Export CSV"}
+        </button>
+
+        <button
+          className="secondary-button"
+          type="button"
+          disabled={Boolean(exporting)}
+          onClick={() => exportReport("pdf")}
+        >
+          {exporting === "pdf" ? "Exporting..." : "Export PDF"}
         </button>
       </form>
 
@@ -4211,18 +4828,22 @@ const renderBar = (label, count, maxCount, color = "#6366f1") => (
               <span>Employees in Report</span>
               <strong>{totalEmployees}</strong>
             </div>
+
             <div className="analytics-stat-card">
               <span>Attendance Records</span>
               <strong>{totalAttendance}</strong>
             </div>
+
             <div className="analytics-stat-card">
               <span>Leave Records</span>
               <strong>{totalLeaves}</strong>
             </div>
+
             <div className="analytics-stat-card">
               <span>Performance Reviews</span>
               <strong>{performance.total_reviews}</strong>
             </div>
+
             <div className="analytics-stat-card">
               <span>Average Rating</span>
               <strong>
@@ -4231,83 +4852,962 @@ const renderBar = (label, count, maxCount, color = "#6366f1") => (
             </div>
           </div>
 
-
           <div className="analytics-grid">
-  <section className="panel">
-    <h3>Department-wise Employees</h3>
-    {departmentData.length ? (
-      departmentData.map((item) =>
-renderBar(
-  item.department,
-  item.employee_count,
-  Math.max(...departmentData.map((d) => d.employee_count), 1),
-  "#6366f1"
-)
-      )
-    ) : (
-      <p>No employee data for these filters.</p>
-    )}
-  </section>
+            <section className="panel">
+              <h3>Department-wise Employees</h3>
+              {departmentData.length ? (
+                departmentData.map((item) =>
+                  renderBar(
+                    item.department,
+                    item.employee_count,
+                    Math.max(
+                      ...departmentData.map((d) => d.employee_count),
+                      1
+                    ),
+                    "#6366f1"
+                  )
+                )
+              ) : (
+                <p>No employee data for these filters.</p>
+              )}
+            </section>
 
-  <section className="panel">
-    <h3>Attendance Trends</h3>
-    {attendanceData.length ? (
-      attendanceData.map((item) =>
-        
-renderBar(
-  item.status.replaceAll("_", " "),
-  item.count,
-  Math.max(...attendanceData.map((d) => d.count), 1),
-  item.status === "PRESENT"
-    ? "#10b981"
-    : item.status === "ABSENT"
-      ? "#ef4444"
-      : "#f59e0b"
-)
-      )
-    ) : (
-      <p>No attendance data for these filters.</p>
-    )}
-  </section>
+            <section className="panel">
+              <h3>Attendance Trends</h3>
+              {attendanceData.length ? (
+                attendanceData.map((item) =>
+                  renderBar(
+                    item.status.replaceAll("_", " "),
+                    item.count,
+                    Math.max(...attendanceData.map((d) => d.count), 1),
+                    item.status === "PRESENT"
+                      ? "#10b981"
+                      : item.status === "ABSENT"
+                        ? "#ef4444"
+                        : "#f59e0b"
+                  )
+                )
+              ) : (
+                <p>No attendance data for these filters.</p>
+              )}
+            </section>
 
-  <section className="panel">
-    <h3>Leave Trends</h3>
-    {leaveData.length ? (
-      leaveData.map((item) =>
+            <section className="panel">
+              <h3>Leave Trends</h3>
+              {leaveData.length ? (
+                leaveData.map((item) =>
+                  renderBar(
+                    item.status.replaceAll("_", " "),
+                    item.count,
+                    Math.max(...leaveData.map((d) => d.count), 1),
+                    item.status === "APPROVED"
+                      ? "#10b981"
+                      : item.status === "REJECTED"
+                        ? "#ef4444"
+                        : "#8b5cf6"
+                  )
+                )
+              ) : (
+                <p>No leave data for these filters.</p>
+              )}
+            </section>
 
-renderBar(
-  item.status.replaceAll("_", " "),
-  item.count,
-  Math.max(...leaveData.map((d) => d.count), 1),
-  item.status === "APPROVED"
-    ? "#10b981"
-    : item.status === "REJECTED"
-      ? "#ef4444"
-      : "#8b5cf6"
-)
-
-      )
-    ) : (
-      <p>No leave data for these filters.</p>
-    )}
-  </section>
-
-  <section className="panel">
-    <h3>Performance Insights</h3>
-    <div className="analytics-row">
-      <span>Total reviews</span>
-      <strong>{performance.total_reviews}</strong>
-    </div>
-    <div className="analytics-row">
-      <span>Average rating</span>
-      <strong>
-        {Number(performance.average_rating || 0).toFixed(1)} / 5
-      </strong>
-    </div>
-  </section>
-
+            <section className="panel">
+              <h3>Performance Insights</h3>
+              <div className="analytics-row">
+                <span>Total reviews</span>
+                <strong>{performance.total_reviews}</strong>
+              </div>
+              <div className="analytics-row">
+                <span>Average rating</span>
+                <strong>
+                  {Number(performance.average_rating || 0).toFixed(1)} / 5
+                </strong>
+              </div>
+            </section>
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+
+function ResignationPage({ user }) {
+  const [resignations, setResignations] = useState([]);
+  const [reason, setReason] = useState("");
+  const [lastWorkingDay, setLastWorkingDay] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [notes, setNotes] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  const token = localStorage.getItem("worksphere_token");
+  const isHR = ["HR", "ADMIN"].includes(user?.role);
+
+  async function loadResignations() {
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/resignations/",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Unable to load resignations");
+      setResignations(data);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadResignations();
+  }, []);
+
+  async function submitResignation(e) {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/resignations/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            reason: reason.trim(),
+            last_working_day: lastWorkingDay,
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Submission failed");
+
+      setReason("");
+      setLastWorkingDay("");
+      setMessage("Resignation submitted successfully.");
+      await loadResignations();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function updateResignation(id, status, clearanceStatus) {
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/resignations/${id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status,
+            exit_interview_notes: notes[id] ?? null,
+            clearance_status: clearanceStatus,
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Update failed");
+
+      setMessage(`Resignation #${id} updated.`);
+      await loadResignations();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <div className="page-content resignation-page">
+      <div className="page-header">
+      </div>
+
+      {!isHR && (
+        <form className="dashboard-card" onSubmit={submitResignation}>
+          <h3>Submit Resignation</h3>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <input
+              placeholder="Reason for resignation"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              required
+            />
+            <input
+              type="date"
+              value={lastWorkingDay}
+              onChange={(e) => setLastWorkingDay(e.target.value)}
+              min={new Date().toISOString().slice(0, 10)}
+              required
+            />
+            <button type="submit">Submit Resignation</button>
+          </div>
+        </form>
+      )}
+
+      {error && <p role="alert" style={{ color: "red" }}>{error}</p>}
+      {message && <p>{message}</p>}
+
+      <div className="dashboard-card">
+        <h3>{isHR ? "Employee Resignations" : "My Resignations"}</h3>
+
+        {loading ? (
+          <p>Loading resignations...</p>
+        ) : resignations.length === 0 ? (
+          <p>No resignation records found.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  {isHR && <th>Employee ID</th>}
+                  <th>Reason</th>
+                  <th>Resignation Date</th>
+                  <th>Last Working Day</th>
+                  <th>Status</th>
+                  <th>Exit Notes</th>
+                  <th>Clearance</th>
+                  {isHR && <th>Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {resignations.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.id}</td>
+                    {isHR && <td>{item.employee_id}</td>}
+                    <td>{item.reason}</td>
+                    <td>{item.resignation_date}</td>
+                    <td>{item.last_working_day}</td>
+                    <td>
+  <span className={`resignation-status status-${item.status.toLowerCase()}`}>
+    {item.status.replace("_", " ")}
+  </span>
+</td>
+                    <td>
+                      {isHR ? (
+                        <input
+                          placeholder="Exit interview notes"
+                          value={notes[item.id] ?? item.exit_interview_notes ?? ""}
+                          onChange={(e) =>
+                            setNotes({ ...notes, [item.id]: e.target.value })
+                          }
+                        />
+                      ) : (
+                        item.exit_interview_notes || "—"
+                      )}
+                    </td>
+                    <td>
+  <span className={`resignation-status status-${item.clearance_status.toLowerCase()}`}>
+    {item.clearance_status.replace("_", " ")}
+  </span>
+</td>
+                    {isHR && (
+                      <td>
+                        {item.status === "PENDING" && (
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateResignation(item.id, "APPROVED", "PENDING")
+                              }
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateResignation(item.id, "REJECTED", "PENDING")
+                              }
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                        {item.status === "APPROVED" &&
+                          item.clearance_status !== "COMPLETED" && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateResignation(item.id, "APPROVED", "COMPLETED")
+                              }
+                            >
+                              Complete Clearance
+                            </button>
+                          )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnnouncementsPage({ user }) {
+  const [announcements, setAnnouncements] = useState([]);
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const token = localStorage.getItem("worksphere_token");
+  const canManage = ["HR", "ADMIN"].includes(user?.role);
+
+  async function loadAnnouncements() {
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/announcements/",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to load announcements");
+      }
+
+      setAnnouncements(data);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadAnnouncements();
+  }, []);
+
+  async function createAnnouncement(e) {
+    e.preventDefault();
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/announcements/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: title.trim(),
+            message: message.trim(),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to publish announcement");
+      }
+
+      setTitle("");
+      setMessage("");
+      setNotice("Announcement published successfully.");
+      await loadAnnouncements();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function deleteAnnouncement(id) {
+    if (!window.confirm("Delete this announcement?")) return;
+
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/announcements/${id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to delete announcement");
+      }
+
+      setNotice("Announcement deleted successfully.");
+      await loadAnnouncements();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <div className="page-content announcements-page">
+      <div className="page-header">
+        
+        <p>Company news, important updates, and messages for your team.</p>
+      </div>
+
+      {canManage && (
+        <form className="dashboard-card" onSubmit={createAnnouncement}>
+          <h3>Publish an Announcement</h3>
+
+          <div style={{ display: "grid", gap: 14 }}>
+            <input
+              type="text"
+              placeholder="Announcement title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={200}
+              required
+            />
+
+            <textarea
+              placeholder="Write your announcement..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+              required
+            />
+
+            <div>
+              <button type="submit">Publish Announcement</button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {error && <p role="alert" style={{ color: "#dc2626" }}>{error}</p>}
+      {notice && <p role="status">{notice}</p>}
+
+      <div className="dashboard-card">
+        <h3>Latest Announcements</h3>
+
+        {loading ? (
+          <p>Loading announcements...</p>
+        ) : announcements.length === 0 ? (
+          <p>No announcements have been published yet.</p>
+        ) : (
+          <div style={{ display: "grid", gap: 16 }}>
+            {announcements.map((item) => (
+              <article
+                key={item.id}
+                style={{
+                  padding: 20,
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  background: "#fff",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <h4 style={{ margin: 0 }}>{item.title}</h4>
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => deleteAnnouncement(item.id)}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+
+                <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
+                  {item.message}
+                </p>
+
+                <small style={{ color: "#64748b" }}>
+                  Published {new Date(item.created_at).toLocaleString()}
+                </small>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TaskManagementPage({ user }) {
+  const [tasks, setTasks] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const token = localStorage.getItem("worksphere_token");
+  const isManager = ["HR", "ADMIN"].includes(user?.role);
+
+  const loadTasks = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/tasks/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) throw new Error("Could not load tasks");
+
+      setTasks(await response.json());
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadTasks();
+
+    if (isManager) {
+      fetch("http://127.0.0.1:8000/api/employees/", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error("Could not load employees");
+          return response.json();
+        })
+        .then((data) =>
+          setEmployees(Array.isArray(data) ? data : data.employees || [])
+        )
+        .catch(() => setError("Could not load employees."));
+    }
+  }, []);
+
+  const createTask = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/tasks/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          assigned_to: Number(assignedTo),
+          title,
+          description,
+          due_date: dueDate,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not assign task");
+      }
+
+      setTitle("");
+      setDescription("");
+      setAssignedTo("");
+      setDueDate("");
+      await loadTasks();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateStatus = async (task) => {
+    const status =
+      task.status === "COMPLETED" ? "PENDING" : "COMPLETED";
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/tasks/${task.id}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not update task");
+      }
+
+      await loadTasks();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    if (!window.confirm("Delete this task?")) return;
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/tasks/${taskId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not delete task");
+      }
+
+      await loadTasks();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="tasks-page">
+      <div className="tasks-header">
+  
+        <p>
+          {isManager
+            ? "Assign tasks and track employee progress."
+            : "View your assigned tasks and update your progress."}
+        </p>
+      </div>
+
+      {error && <p className="task-error">{error}</p>}
+
+      {isManager && (
+        <form onSubmit={createTask} className="task-form">
+          <h3>Task Assignment</h3>
+
+          <label htmlFor="task-employee">Employee</label>
+          <select
+            id="task-employee"
+            value={assignedTo}
+            onChange={(e) => setAssignedTo(e.target.value)}
+            required
+          >
+            <option value="">Select employee</option>
+            {employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>
+                {employee.full_name} (ID: {employee.id})
+              </option>
+            ))}
+          </select>
+
+          <label htmlFor="task-title">Task Title</label>
+          <input
+            id="task-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter task title"
+            required
+            maxLength={200}
+          />
+
+          <label htmlFor="task-description">Description</label>
+          <textarea
+            id="task-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe the task"
+          />
+
+          <label htmlFor="task-due-date">Due Date</label>
+          <input
+            id="task-due-date"
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            required
+          />
+
+          <button type="submit" disabled={loading}>
+            {loading ? "Assigning..." : "Assign Task"}
+          </button>
+        </form>
+      )}
+
+      <section className="task-details-section">
+        
+
+        {tasks.length === 0 ? (
+          <p>No tasks found.</p>
+        ) : (
+          <div className="task-list">
+            {tasks.map((task) => (
+
+<article className="task-card" key={task.id}>
+  {isManager ? (
+    <>
+      <h4>{task.title}</h4>
+      <p>{task.description || "No description"}</p>
+
+      <div className="task-meta">
+        <div>
+          <span>Employee ID</span>
+          <strong>{task.assigned_to}</strong>
+        </div>
+        <div>
+          <span>Due Date</span>
+          <strong>{task.due_date}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>{task.status}</strong>
+        </div>
+      </div>
+
+      <button type="button" onClick={() => deleteTask(task.id)}>
+        Delete
+      </button>
+    </>
+  ) : (
+    <>
+      <div className="task-detail-row">
+        <span>Title</span>
+        <strong>{task.title}</strong>
+      </div>
+
+      <div className="task-detail-row">
+        <span>Description</span>
+        <p>{task.description || "No description"}</p>
+      </div>
+
+      <div className="task-meta">
+        <div>
+          <span>Employee ID</span>
+          <strong>{task.assigned_to}</strong>
+        </div>
+        <div>
+          <span>Due Date</span>
+          <strong>{task.due_date}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>{task.status}</strong>
+        </div>
+      </div>
+
+      <button type="button" onClick={() => updateStatus(task)}>
+        Mark {task.status === "COMPLETED" ? "Pending" : "Completed"}
+      </button>
+    </>
+  )}
+</article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function FeedbackPage({ user }) {
+  const [message, setMessage] = useState("");
+  const [rating, setRating] = useState(5);
+  const [feedback, setFeedback] = useState([]);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const isHR = ["HR", "ADMIN"].includes(
+    String(user?.role || "").toUpperCase()
+  );
+
+  const loadFeedback = useCallback(async () => {
+    try {
+      const data = await apiRequest("/api/feedback/");
+      setFeedback(data);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isHR) loadFeedback();
+  }, [isHR, loadFeedback]);
+
+  const submitFeedback = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      await apiRequest("/api/feedback/", {
+        method: "POST",
+        body: JSON.stringify({
+          message: message.trim(),
+          rating,
+        }),
+      });
+
+      setMessage("");
+      setRating(5);
+      setSuccess("Feedback submitted successfully.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="page-content feedback-page">
+      {!isHR && (
+        <div className="panel feedback-form-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Employee Feedback</h2>
+              <p>Share your thoughts to help us improve the workplace.</p>
+            </div>
+            <span className="feedback-icon">💬</span>
+          </div>
+
+          <form onSubmit={submitFeedback} className="form-grid">
+            <label className="feedback-rating">
+              How would you rate your experience?
+              <select
+                value={rating}
+                onChange={(event) =>
+                  setRating(Number(event.target.value))
+                }
+              >
+                {[5, 4, 3, 2, 1].map((value) => (
+                  <option key={value} value={value}>
+                    {"⭐".repeat(value)} {value} / 5
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="full-width">
+              Your feedback
+              <textarea
+                className="feedback-textarea"
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="Tell us what is working well or what we could improve..."
+                rows={5}
+                required
+                minLength={1}
+              />
+            </label>
+
+            <div className="full-width feedback-actions">
+              <button
+                className="primary-button"
+                type="submit"
+                disabled={busy || !message.trim()}
+              >
+                {busy ? "Submitting..." : "Submit Feedback"}
+              </button>
+            </div>
+          </form>
+
+          {error && <p className="error-message">{error}</p>}
+          {success && <p className="success-message">{success}</p>}
+        </div>
+      )}
+
+      {isHR && (
+        <div className="panel feedback-dashboard-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Feedback Dashboard</h2>
+              <p>Review feedback submitted by employees.</p>
+            </div>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={loadFeedback}
+            >
+              ↻ Refresh
+            </button>
+          </div>
+
+          <div className="feedback-summary">
+            <div className="feedback-summary-icon">💬</div>
+            <div>
+              <span>Total submissions</span>
+              <strong>{feedback.length}</strong>
+            </div>
+          </div>
+
+          {error && <p className="error-message">{error}</p>}
+
+          {feedback.length === 0 ? (
+            <div className="feedback-empty">
+              <span>📝</span>
+              <h3>No feedback yet</h3>
+              <p>Employee submissions will appear here.</p>
+            </div>
+          ) : (
+            <div className="table-container">
+              <table className="feedback-table">
+                <thead>
+                  <tr>
+                    <th>Employee ID</th>
+                    <th>Rating</th>
+                    <th>Feedback</th>
+                    <th>Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {feedback.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <span className="feedback-employee-id">
+                          #{item.employee_id}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="feedback-rating-value">
+                          {"⭐".repeat(item.rating)}
+                          <small>{item.rating}/5</small>
+                        </span>
+                      </td>
+                      <td className="feedback-message-cell">
+                        {item.message}
+                      </td>
+                      <td>
+                        {item.created_at
+                          ? new Date(item.created_at).toLocaleString()
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

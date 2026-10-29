@@ -17,6 +17,11 @@ from app.services.security import (
     hash_password,
     verify_password,
 )
+from app.schemas.user import (
+    ProfileUpdate,
+    ChangePassword,
+    NotificationPreferences,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -149,6 +154,111 @@ def require_roles(*roles: str):
         return current_user
 
     return role_checker
+
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+from app.models.notification_preference import NotificationPreference
+
+
+@router.put("/me", response_model=UserResponse)
+def update_profile(
+    payload: ProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    duplicate = db.query(User).filter(
+        (User.id != current_user.id)
+        & (
+            (User.username == payload.username)
+            | (User.email == str(payload.email))
+        )
+    ).first()
+
+    if duplicate:
+        raise HTTPException(
+            status_code=409,
+            detail="Username or email is already in use",
+        )
+
+    current_user.username = payload.username
+    current_user.email = str(payload.email)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePassword,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(
+        payload.current_password,
+        current_user.hashed_password,
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Current password is incorrect",
+        )
+
+    if payload.current_password == payload.new_password:
+        raise HTTPException(
+            status_code=400,
+            detail="New password must differ from current password",
+        )
+
+    current_user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+
+    return {"message": "Password changed successfully"}
+
+
+@router.get("/notification-preferences",
+            response_model=NotificationPreferences)
+def get_notification_preferences(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    preferences = db.query(NotificationPreference).filter(
+        NotificationPreference.user_id == current_user.id
+    ).first()
+
+    if not preferences:
+        preferences = NotificationPreference(user_id=current_user.id)
+        db.add(preferences)
+        db.commit()
+        db.refresh(preferences)
+
+    return preferences
+
+
+@router.put("/notification-preferences",
+            response_model=NotificationPreferences)
+def update_notification_preferences(
+    payload: NotificationPreferences,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    preferences = db.query(NotificationPreference).filter(
+        NotificationPreference.user_id == current_user.id
+    ).first()
+
+    if not preferences:
+        preferences = NotificationPreference(user_id=current_user.id)
+        db.add(preferences)
+
+    preferences.email_notifications = payload.email_notifications
+    preferences.announcement_notifications = (
+        payload.announcement_notifications
+    )
+    preferences.leave_notifications = payload.leave_notifications
+    preferences.payroll_notifications = payload.payroll_notifications
+
+    db.commit()
+    db.refresh(preferences)
+
+    return preferences
