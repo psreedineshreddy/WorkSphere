@@ -8,11 +8,13 @@ A Human Resource Management System built with **React, FastAPI, SQLAlchemy, and 
 - JWT-based authentication
 - Role-based access for Employee, HR, and Admin
 - Protected API endpoints
+- User account activation and deactivation
 
 ### 2. Employee Management
 - Employee profile and information management
-- Department, designation, joining date, and employment status
-- Employee search and advanced filtering by status, role, attendance, and performance rating
+- Department, designation, joining date, salary, and employment status
+- Employee search and filtering
+- Employee records management
 
 ### 3. Attendance Management
 - Employee check-in and check-out
@@ -29,11 +31,11 @@ A Human Resource Management System built with **React, FastAPI, SQLAlchemy, and 
 - Submit leave applications
 - View leave history and request status
 - HR/Admin leave approval and rejection
-- Leave calendar and team availability view
+- Leave calendar and team availability
 
 ### 6. Document Management
 - Upload and manage employee documents
-- Select employees for document assignment
+- Assign documents to employees
 - Search and view available documents
 - Employee-specific document access
 
@@ -51,17 +53,26 @@ A Human Resource Management System built with **React, FastAPI, SQLAlchemy, and 
 - Attendance summaries
 - Leave statistics
 - Payroll overview
-- Advanced analytics and reports
+- Analytics and reports
 
 ### 10. Notifications
 - View notifications and HR activity updates
 - Late attendance notifications
 - Refresh notifications and manage read status
+- Notification preferences for announcements, leave, payroll, and attendance
 
 ### 11. Admin User Management
 - View and manage user accounts
+- Assign and update user roles
 - Activate or deactivate user accounts
 - Delete user accounts, subject to application permissions
+
+### 12. Profile & Settings
+- View personal account information
+- View employment information
+- Update username and email address
+- Change password with current-password verification
+- Manage notification preferences
 
 ## Technology Stack
 
@@ -93,14 +104,11 @@ WorkSphere/
 │   ├── src/
 │   ├── package.json
 │   └── index.html
-├── Phase 1 Screenshots/
-├── Phase 2 Screenshots/
-├── Phase 3 Screenshots/
+├── Phase 1-3 Screenshots/
+├── Phase 4 Screenshots/
 ├── .gitignore
 └── README.md
 ```
-
-*The structure above highlights the main project files and screenshot folders. Additional files may exist in the actual project.*
 
 ## Getting Started
 
@@ -128,7 +136,7 @@ uvicorn app.main:app --reload
 ```
 
 - **Backend:** http://127.0.0.1:8000
-- **API documentation:** http://127.0.0.1:8000/docs
+- **API Documentation:** http://127.0.0.1:8000/docs
 
 ### Frontend Setup
 
@@ -144,22 +152,20 @@ Open the local URL shown by Vite, usually http://localhost:5173.
 
 ## Screenshots
 
-The project includes screenshots and development evidence for the following phases:
+Screenshots are organized into the following folders:
 
-- **Phase 1:** Core HRMS functionality, including authentication, employee management, attendance, and other core features.
-- **Phase 2:** Refer to the Phase 2 Screenshots folder for the relevant implementation evidence.
-- **Phase 3 :** Shift management, leave calendar, document management, performance reviews, analytics and reports, late attendance alerts, and employee advanced filters.
-
-Screenshots are stored in the corresponding phase folders.
+- **Phase 1-3 Screenshots:** Screenshots documenting core HRMS functionality and features implemented during Phases 1, 2, and 3.
+- **Phase 4 Screenshots:** Screenshots documenting the relevant Phase 4 modules, including Profile & Settings and notification preferences.
 
 ## Security
 
 - Keep secret keys and credentials private.
-- Do not commit `.env` files.
+- Never commit `.env` files.
 - Use `.env.example` to document required environment variables without exposing real credentials.
 - Exclude local databases, virtual environments, and installed frontend dependencies from version control.
-- Enforce role-based access and appropriate authorization checks for protected operations.
+- Enforce authentication, role-based access, and authorization checks for protected operations.
+- Share sensitive employee documents only through authorized channels.
 
 ## Project Status
 
-WorkSphere HRMS is being developed in phases, with features added incrementally. Refer to the corresponding screenshot folders and API documentation to review the implemented functionality.
+WorkSphere HRMS is developed in phases, with features added incrementally. Refer to the corresponding screenshot folders and API documentation to review the implementation.
